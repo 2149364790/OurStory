@@ -1,0 +1,579 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=Pacifico&display=swap');
+
+@import "tailwindcss";
+
+:root {
+  font-family: 'Inter', 'Noto Sans SC', sans-serif;
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: #fff0f3;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 77, 109, 0.3);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 77, 109, 0.5);
+}
+
+/* Glassmorphism Styles */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 8px 32px 0 rgba(255, 77, 109, 0.05);
+}
+
+.glass-input {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.glass-input:focus {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(255, 77, 109, 0.4);
+  box-shadow: 0 0 0 3px rgba(255, 77, 109, 0.15);
+}
+
+/* Floating Particles */
+.heart-particle {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  animation: floatUp 4s ease-in-out forwards;
+}
+
+@keyframes floatUp {
+  0% {
+    transform: translateY(105vh) translateX(0) scale(0.5) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  90% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-10vh) translateX(var(--drift, 40px)) scale(1.3) rotate(var(--rotation, 30deg));
+    opacity: 0;
+  }
+}
+
+/* Background Gradient Themes */
+.bg-sunset-theme {
+  background: linear-gradient(135deg, #fff0f3 0%, #ffe5ec 40%, #fff2e6 100%);
+  background-attachment: fixed;
+}
+
+.bg-starry-theme {
+  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #311042 100%);
+  color: #f1f5f9;
+  background-attachment: fixed;
+}
+
+.bg-cherry-theme {
+  background: linear-gradient(135deg, #ffe5ec 0%, #ffb3c1 50%, #ff85a1 100%);
+  background-attachment: fixed;
+}
+
+/* Custom CSS to delete App.css logo spin */
+.custom-shadow {
+  box-shadow: 0 10px 30px -10px rgba(255, 77, 109, 0.2);
+}
+
+/* Heart-mask connection line */
+.heart-line::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255, 77, 109, 0.5), transparent);
+  z-index: 0;
+}
+
+/* Floating animations for avatars */
+@keyframes float-left {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-6px) rotate(-1.5deg); }
+}
+@keyframes float-right {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-5px) rotate(1.5deg); }
+}
+
+.animate-float-left {
+  animation: float-left 5s ease-in-out infinite;
+}
+.animate-float-right {
+  animation: float-right 5.5s ease-in-out infinite;
+}
+
+/* Avatar Hover Leaning-in interaction */
+.avatar-container:hover .avatar-left-container {
+  transform: translateX(12px) translateY(2px) rotate(5deg) scale(1.05);
+}
+.avatar-container:hover .avatar-right-container {
+  transform: translateX(-12px) translateY(2px) rotate(-5deg) scale(1.05);
+}
+.avatar-container:hover .heart-center-btn {
+  transform: scale(1.25) rotate(360deg);
+  box-shadow: 0 0 25px rgba(244, 63, 94, 0.7);
+}
+
+/* Heart Glow Ripple wave */
+@keyframes heart-pulse-glow {
+  0% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.4), 0 0 0 0 rgba(244, 63, 94, 0.2); }
+  70% { box-shadow: 0 0 0 10px rgba(244, 63, 94, 0), 0 0 0 20px rgba(244, 63, 94, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0), 0 0 0 0 rgba(244, 63, 94, 0); }
+}
+.animate-pulse-glow {
+  animation: heart-pulse-glow 2s infinite;
+}
+
+/* ECG pulse connection line animations */
+@keyframes ecg-dash {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-ecg-slow {
+  stroke-dasharray: 60, 290;
+  stroke-dashoffset: 350;
+  animation: ecg-dash 2s linear infinite;
+}
+
+.animate-ecg-fast {
+  stroke-dasharray: 80, 270;
+  stroke-dashoffset: 350;
+  animation: ecg-dash 0.5s linear infinite;
+}
+
+/* Falling cherry blossoms background particles */
+@keyframes sakura-fall {
+  0% { transform: translateY(-10%) translateX(0) rotate(0deg); opacity: 0; }
+  10% { opacity: 0.8; }
+  90% { opacity: 0.8; }
+  100% { transform: translateY(110%) translateX(100px) rotate(360deg); opacity: 0; }
+}
+.sakura-particle {
+  position: absolute;
+  pointer-events: none;
+  background: radial-gradient(circle, #ffccd5 0%, #ffb3c1 100%);
+  border-radius: 50% 0 50% 50%;
+  animation: sakura-fall 8s linear infinite;
+}
+
+/* Floating Ambient Orbs */
+@keyframes float-orb-1 {
+  0%, 100% { transform: translate(0px, 0px) scale(1); }
+  50% { transform: translate(40px, 50px) scale(1.2); }
+}
+@keyframes float-orb-2 {
+  0%, 100% { transform: translate(0px, 0px) scale(1.1); }
+  50% { transform: translate(-50px, -30px) scale(0.9); }
+}
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+.animate-float-orb-1 {
+  animation: float-orb-1 12s ease-in-out infinite;
+}
+.animate-float-orb-2 {
+  animation: float-orb-2 15s ease-in-out infinite;
+}
+.animate-twinkle {
+  animation: twinkle 3s ease-in-out infinite;
+}
+
+/* Neon Glow Drop Shadow Filter */
+.neon-shadow-rose {
+  filter: drop-shadow(0 0 5px rgba(244, 63, 94, 0.75)) drop-shadow(0 0 1.5px rgba(244, 63, 94, 0.35));
+}
+.neon-shadow-rose-faint {
+  filter: drop-shadow(0 0 2px rgba(244, 63, 94, 0.2));
+}
+
+/* Breath Glow Ring animation */
+@keyframes glow-breath {
+  0%, 100% { 
+    box-shadow: 0 0 10px rgba(244, 63, 94, 0.2), 0 0 0 1px rgba(244, 63, 94, 0.1); 
+    border-color: rgba(255, 255, 255, 0.9);
+  }
+  50% { 
+    box-shadow: 0 0 20px rgba(244, 63, 94, 0.5), 0 0 0 4px rgba(244, 63, 94, 0.2); 
+    border-color: rgba(244, 63, 94, 0.7);
+  }
+}
+.animate-glow-breath {
+  animation: glow-breath 3s ease-in-out infinite;
+}
+
+/* Floating speech bubble hover scale animation */
+@keyframes bubble-float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-4px) scale(1.02); }
+}
+.animate-bubble-float {
+  animation: bubble-float 2.5s ease-in-out infinite;
+}
+
+/* Glowing card effect for completed checklist items (lit-up lights) */
+@keyframes card-lit-glow {
+  0%, 100% {
+    box-shadow: 0 4px 20px rgba(244, 63, 94, 0.15), 0 0 10px rgba(244, 63, 94, 0.1), inset 0 0 8px rgba(255, 255, 255, 0.7);
+    border-color: rgba(244, 63, 94, 0.35);
+  }
+  50% {
+    box-shadow: 0 8px 30px rgba(244, 63, 94, 0.35), 0 0 18px rgba(244, 63, 94, 0.25), inset 0 0 12px rgba(255, 182, 193, 0.5);
+    border-color: rgba(244, 63, 94, 0.65);
+  }
+}
+.animate-card-glow {
+  animation: card-lit-glow 4s ease-in-out infinite;
+}
+
+/* PWA Standalone Mode Safe Area Styles */
+.pwa-safe-padding-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.toast-safe-top {
+  top: calc(env(safe-area-inset-top, 0px) + 1.5rem) !important;
+}
+.lightbox-close-btn {
+  top: calc(env(safe-area-inset-top, 0px) + 1.5rem) !important;
+}
+
+/* Shimmer sweep light sweep animation */
+@keyframes shimmer-sweep {
+  0% { transform: translateX(-150%) skewX(-15deg); }
+  100% { transform: translateX(150%) skewX(-15deg); }
+}
+.animate-shimmer {
+  animation: shimmer-sweep 7s ease-in-out infinite;
+}
+
+/* Heartbeat bounce for timer card */
+@keyframes timer-beat {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+.animate-timer-beat {
+  animation: timer-beat 1s ease-in-out infinite;
+}
+
+/* Poetry Ribbon Neon flow border & click particles */
+@keyframes spin-slow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.animate-spin-slow {
+  animation: spin-slow 8s linear infinite;
+}
+
+@keyframes particle-float {
+  0% {
+    transform: translate(-50%, -50%) translate(0, 0) scale(0.6) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) translate(var(--tx), var(--ty)) scale(var(--scale)) rotate(var(--rot, 90deg));
+    opacity: 0;
+  }
+}
+.click-particle {
+  position: absolute;
+  pointer-events: none;
+  z-index: 100;
+  animation: particle-float 1.2s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+}
+
+/* Polaroid Card Styles & Animations */
+.polaroid-card {
+  box-shadow: 0 20px 50px -15px rgba(0, 0, 0, 0.3), 0 0 1px 1px rgba(255, 255, 255, 0.4) inset;
+}
+
+@keyframes avatar-kiss-left {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  40% { transform: translateX(22px) rotate(8deg); }
+  50% { transform: translateX(25px) rotate(12deg); }
+  60% { transform: translateX(22px) rotate(8deg); }
+}
+
+@keyframes avatar-kiss-right {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  40% { transform: translateX(-22px) rotate(-8deg); }
+  50% { transform: translateX(-25px) rotate(-12deg); }
+  60% { transform: translateX(-22px) rotate(-8deg); }
+}
+
+@keyframes heart-pop {
+  0% { transform: translate(-50%, 0) scale(0); opacity: 0; }
+  40% { transform: translate(-50%, -10px) scale(0); opacity: 0; }
+  50% { transform: translate(-50%, -20px) scale(1.4); opacity: 1; }
+  80% { transform: translate(-50%, -45px) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -60px) scale(0.6); opacity: 0; }
+}
+
+.animate-kiss-left {
+  animation: avatar-kiss-left 3.5s ease-in-out infinite;
+}
+
+.animate-kiss-right {
+  animation: avatar-kiss-right 3.5s ease-in-out infinite;
+}
+
+.animate-heart-pop {
+  animation: heart-pop 3.5s ease-in-out infinite;
+}
+
+/* Crystal Bottle Shimmer and Swing Animations */
+@keyframes bottle-swing {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-6px) rotate(1.5deg); }
+}
+
+@keyframes bottle-glow {
+  0%, 100% {
+    box-shadow: 0 8px 32px 0 rgba(255, 77, 109, 0.15), 0 0 10px 1px rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.4);
+  }
+  50% {
+    box-shadow: 0 12px 40px 0 rgba(255, 77, 109, 0.35), 0 0 18px 3px rgba(255, 255, 255, 0.4);
+    border-color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+@keyframes shake-swing {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px) rotate(-2deg); }
+  40%, 80% { transform: translateX(6px) rotate(2deg); }
+}
+
+.animate-bottle-swing {
+  animation: bottle-swing 4s ease-in-out infinite;
+}
+
+.animate-bottle-glow {
+  animation: bottle-glow 3s ease-in-out infinite;
+}
+
+.animate-shake-swing {
+  animation: shake-swing 0.5s ease-in-out;
+}
+
+/* Letter Paper Background Themes */
+.letter-theme-vintage {
+  background: linear-gradient(to bottom, #fcf8f2, #f5ecd8);
+  border: 1px solid #e6d3af;
+  color: #5c4b37;
+}
+
+.letter-theme-sunset {
+  background: linear-gradient(135deg, #fff3f5, #ffebe3);
+  border: 1px solid #ffd4c4;
+  color: #7c3f35;
+}
+
+.letter-theme-starry {
+  background: linear-gradient(135deg, #1e1b4b, #2e1065);
+  border: 1px solid #4c1d95;
+  color: #f5f3ff;
+}
+
+.letter-theme-cherry {
+  background: linear-gradient(135deg, #fff0f3, #ffe3e8);
+  border: 1px solid #ffaec0;
+  color: #7c2d37;
+}
+
+/* Custom Hand-written Style Font Configuration */
+.font-love-letter {
+  font-family: 'Kaiti', 'STKaiti', 'Georgia', serif;
+}
+
+/* Login Page Specific Beautification Animations */
+@keyframes login-float-blob {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -40px) scale(1.15);
+  }
+  66% {
+    transform: translate(-30px, 30px) scale(0.9);
+  }
+}
+
+.animate-login-blob {
+  animation: login-float-blob 20s ease-in-out infinite;
+}
+
+@keyframes login-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  80%, 100% {
+    transform: translateX(100%);
+  }
+}
+
+.button-shimmer-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.button-shimmer-container::after {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.2) 20%,
+    rgba(255, 255, 255, 0.45) 50%,
+    rgba(255, 255, 255, 0.2) 80%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  content: '';
+  animation: login-shimmer 3s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes heart-explode {
+  0% {
+    transform: scale(0) translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(var(--scale, 1)) translate(var(--tx, 50px), var(--ty, -50px)) rotate(var(--rot, 45deg));
+    opacity: 0;
+  }
+}
+
+.animate-heart-pop {
+  animation: heart-explode 0.9s cubic-bezier(0.12, 0.85, 0.38, 0.98) forwards;
+}
+
+/* Custom smooth heart breathing animations for Logo */
+@keyframes login-heart-pulse-slow {
+  0%, 100% {
+    transform: translate(-6px, -6px) rotate(-12deg) scale(1);
+    filter: drop-shadow(0 2px 4px rgba(244, 63, 94, 0.1));
+  }
+  50% {
+    transform: translate(-6px, -6px) rotate(-10deg) scale(1.1);
+    filter: drop-shadow(0 6px 12px rgba(244, 63, 94, 0.22));
+  }
+}
+
+@keyframes login-heart-pulse-fast {
+  0%, 100% {
+    transform: translate(4px, 4px) rotate(8deg) scale(1);
+    filter: drop-shadow(0 2px 4px rgba(225, 29, 72, 0.15));
+  }
+  50% {
+    transform: translate(4px, 4px) rotate(6deg) scale(1.22);
+    filter: drop-shadow(0 6px 10px rgba(225, 29, 72, 0.35));
+  }
+}
+
+/* Custom background heart drifting float animation */
+@keyframes login-heart-drift {
+  0% {
+    transform: translateY(105vh) scale(0.4) rotate(0deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: var(--op, 0.35);
+  }
+  85% {
+    opacity: var(--op, 0.35);
+  }
+  100% {
+    transform: translateY(-15vh) scale(1.2) rotate(var(--rot, 35deg)) translateX(var(--drift, 40px));
+    opacity: 0;
+  }
+}
+
+.animate-login-heart {
+  position: absolute;
+  bottom: 0;
+  animation: login-heart-drift linear infinite;
+}
+
+/* 热恋温度计流光与渐变样式 */
+@keyframes thermometer-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-thermometer-flow {
+  background-size: 200% 200%;
+  animation: thermometer-flow 4s ease infinite;
+}
+
+@keyframes bubble-up {
+  0% {
+    transform: translateY(100%) scale(0.3);
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-120%) scale(1.1);
+    opacity: 0;
+  }
+}
+
+.animate-bubble-up {
+  animation: bubble-up 3s ease-in-out infinite;
+}
+
+/* 拍立得照片卡片阴影 */
+.polaroid-effect {
+  background: #ffffff;
+  padding: 12px 12px 28px 12px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12), 0 3px 10px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  transform: rotate(-1.5deg);
+  transition: all 0.3s ease-in-out;
+}
+
+.polaroid-effect:hover {
+  transform: rotate(0deg) scale(1.02);
+}
+
+
