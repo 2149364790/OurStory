@@ -359,38 +359,42 @@ export const Tasks: React.FC = () => {
       });
 
     } catch (err: any) {
-      alert('记录打卡失败: ' + err.message);
+      (window as any).showCustomAlert('记录失败', '记录打卡失败: ' + err.message);
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteTask = async (id: string, mediaUrls: string[]) => {
-    if (!window.confirm('确定要删除这条美好的回忆吗？此操作无法撤销。')) return;
-
-    try {
-      // 1. Delete associated media files from storage if present
-      if (mediaUrls && mediaUrls.length > 0) {
-        const fileNames = mediaUrls.map((url) => {
-          const matchStr = '/storage/v1/object/public/media/';
-          const idx = url.indexOf(matchStr);
-          if (idx !== -1) {
-            return url.substring(idx + matchStr.length);
+    (window as any).showCustomConfirm(
+      '确认删除 🗑️',
+      '确定要删除这条美好的回忆吗？此操作无法撤销。',
+      async () => {
+        try {
+          // 1. Delete associated media files from storage if present
+          if (mediaUrls && mediaUrls.length > 0) {
+            const fileNames = mediaUrls.map((url) => {
+              const matchStr = '/storage/v1/object/public/media/';
+              const idx = url.indexOf(matchStr);
+              if (idx !== -1) {
+                return url.substring(idx + matchStr.length);
+              }
+              const parts = url.split('/');
+              return parts[parts.length - 1];
+            });
+            
+            await supabase.storage.from('media').remove(fileNames);
           }
-          const parts = url.split('/');
-          return parts[parts.length - 1];
-        });
-        
-        await supabase.storage.from('media').remove(fileNames);
-      }
 
-      // 2. Delete task from DB
-      const { error } = await supabase.from('tasks').delete().eq('id', id);
-      if (error) throw error;
-      fetchTasks();
-    } catch (err: any) {
-      alert('删除失败: ' + err.message);
-    }
+          // 2. Delete task from DB
+          const { error } = await supabase.from('tasks').delete().eq('id', id);
+          if (error) throw error;
+          fetchTasks();
+        } catch (err: any) {
+          (window as any).showCustomAlert('删除失败', '删除失败: ' + err.message);
+        }
+      }
+    );
   };
 
   const formatTimestamp = (isoString: string) => {

@@ -5,9 +5,14 @@ import { Heart, Calendar, MessageSquare, Compass, ListTodo } from 'lucide-react'
 interface NavbarProps {
   hasUnreadWhispers?: boolean;
   hasUnreadChecklist?: boolean;
+  hasReviewProposal?: boolean;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ hasUnreadWhispers = false, hasUnreadChecklist = false }) => {
+export const Navbar: React.FC<NavbarProps> = ({ 
+  hasUnreadWhispers = false, 
+  hasUnreadChecklist = false,
+  hasReviewProposal = false 
+}) => {
   const location = useLocation();
   
   // Calculate active index based on route path
@@ -102,6 +107,12 @@ export const Navbar: React.FC<NavbarProps> = ({ hasUnreadWhispers = false, hasUn
           }`}
         >
           <Calendar size={18} className="transition-transform duration-300 active:scale-125" />
+          {hasReviewProposal && (
+            <span className="absolute top-1.5 right-4 w-1.5 h-1.5 bg-rose-500 rounded-full animate-ping" />
+          )}
+          {hasReviewProposal && (
+            <span className="absolute top-1.5 right-4 w-1.5 h-1.5 bg-rose-500 rounded-full" />
+          )}
           <span className="text-[9px] font-semibold mt-0.5">约定日</span>
         </Link>
       </div>

@@ -1,44 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { ListTodo, CheckCircle2, Circle, Calendar, Edit3, X, Sparkles, Trash2, Heart, Plus, FileText, ChevronLeft, ChevronRight, Settings, Image } from 'lucide-react';
-import confetti from 'canvas-confetti';
 import { TimeMachineModal } from '../components/TimeMachineModal';
-
-interface DBChecklistItem {
-  id: string;
-  name: string;
-  category: string;
-  icon: string;
-  is_preset: boolean;
-  created_by?: string;
-  created_at: string;
-}
-
-interface CompletionItem {
-  id: string;
-  item_id: string;
-  completed_by: string;
-  completed_at: string;
-  notes: string | null;
-  task_id: string | null;
-  media?: string[] | null;
-}
-
-interface AuditLog {
-  id: string;
-  operator_id: string;
-  action_type: string;
-  item_name: string;
-  details: string | null;
-  created_at: string;
-  operator_name?: string;
-}
-
-interface DBCategoryItem {
-  id: string;
-  name: string;
-  created_at: string;
-}
+import { 
+  useChecklistData 
+} from '../hooks/useChecklistData';
+import type { DBChecklistItem, CompletionItem, DBCategoryItem } from '../hooks/useChecklistData';
 
 // Calendar Date Picker Helpers
 const getDaysInMonth = (year: number, month: number) => {
@@ -100,149 +67,40 @@ const getStoragePathFromUrl = (url: string): string => {
   return parts[parts.length - 1];
 };
 
-const DEFAULT_PRESET_ITEMS = [
-  // Category 1: 🍽️ 美食与日常饮食
-  { name: '一起吃火锅', category: '美食与日常饮食', icon: '🍲' },
-  { name: '一起吃烤肉', category: '美食与日常饮食', icon: '🥩' },
-  { name: '一起吃烤鱼', category: '美食与日常饮食', icon: '🐟' },
-  { name: '一起吃宵夜', category: '美食与日常饮食', icon: '🍢' },
-  { name: '一起逛菜市场', category: '美食与日常饮食', icon: '🥬' },
-  { name: '一起做饭', category: '美食与日常饮食', icon: '🍳' },
-  { name: '一起用勺子吃西瓜', category: '美食与日常饮食', icon: '🍉' },
-  { name: '一起跟朋友吃饭', category: '美食与日常饮食', icon: '👥' },
-  { name: '一起去小吃街', category: '美食与日常饮食', icon: '🍜' },
-  { name: '一起逛超市', category: '美食与日常饮食', icon: '🛒' },
-  { name: '一起去农场摘水果', category: '美食与日常饮食', icon: '🍓' },
-  { name: '一起逛盒马生鲜', category: '美食与日常饮食', icon: '🏪' },
-  { name: '一起户外烧烤', category: '美食与日常饮食', icon: '🍢' },
-  { name: '一起喝酒', category: '美食与日常饮食', icon: '🍺' },
-  { name: '一起吃海底捞', category: '美食与日常饮食', icon: '🍲' },
-
-  // Category 2: 🌴 旅行与户外活动
-  { name: '一起去旅行', category: '旅行与户外活动', icon: '✈️' },
-  { name: '一起去海边', category: '旅行与户外活动', icon: '🏖️' },
-  { name: '一起回老家', category: '旅行与户外活动', icon: '🏡' },
-  { name: '一起去游乐园', category: '旅行与户外活动', icon: '🎡' },
-  { name: '一起海边看日落', category: '旅行与户外活动', icon: '🌅' },
-  { name: '一起自驾游', category: '旅行与户外活动', icon: '🚗' },
-  { name: '一起划船', category: '旅行与户外活动', icon: '⛵' },
-  { name: '一起赏花', category: '旅行与户外活动', icon: '🌸' },
-  { name: '一起去南山祈福', category: '旅行与户外活动', icon: '🙏' },
-  { name: '一起去水上乐园', category: '旅行与户外活动', icon: '🏊' },
-  { name: '一起海边看日出', category: '旅行与户外活动', icon: '🌅' },
-  { name: '一起坐绿皮火车', category: '旅行与户外活动', icon: '🚂' },
-  { name: '一起去天涯海角', category: '旅行与户外活动', icon: '🏝️' },
-  { name: '一起去迪士尼', category: '旅行与户外活动', icon: '🏰' },
-  { name: '一起郊游踏青', category: '旅行与户外活动', icon: '🌿' },
-  { name: '一起去植物园', category: '旅行与户外活动', icon: '🌵' },
-  { name: '一起去动物园', category: '旅行与户外活动', icon: '🐼' },
-  { name: '一起露营', category: '旅行与户外活动', icon: '⛺' },
-  { name: '一起爬山', category: '旅行与户外活动', icon: '⛰️' },
-  { name: '一起漂流', category: '旅行与户外活动', icon: '🌊' },
-  { name: '一起出国旅游', category: '旅行与户外活动', icon: '✈️' },
-
-  // Category 3: 🏠 居家与日常陪伴
-  { name: '一起大扫除', category: '居家与日常陪伴', icon: '🧹' },
-  { name: '一起跑步', category: '居家与日常陪伴', icon: '🏃' },
-  { name: '一起搬家', category: '居家与日常陪伴', icon: '📦' },
-  { name: '一起晚饭后散步', category: '居家与日常陪伴', icon: '🚶' },
-  { name: '一起玩五子棋', category: '居家与日常陪伴', icon: '♟️' },
-  { name: '一起骑电动车', category: '居家与日常陪伴', icon: '🛵' },
-  { name: '一起玩游戏', category: '居家与日常陪伴', icon: '🎮' },
-  { name: '一起看球赛', category: '居家与日常陪伴', icon: '⚽' },
-  { name: '一起健身', category: '居家与日常陪伴', icon: '🏋️' },
-  { name: '一起熬夜', category: '居家与日常陪伴', icon: '🌃' },
-  { name: '一起种植物', category: '居家与日常陪伴', icon: '🪴' },
-  { name: '难过时的陪伴', category: '居家与日常陪伴', icon: '🫂' },
-  { name: '给我吹头发', category: '居家与日常陪伴', icon: '💨' },
-  { name: '给我穿鞋', category: '居家与日常陪伴', icon: '👟' },
-  { name: '照顾对方', category: '居家与日常陪伴', icon: '❤️' },
-  { name: '接对方下班', category: '居家与日常陪伴', icon: '🏢' },
-  { name: '一起敷面膜', category: '居家与日常陪伴', icon: '🧖' },
-  { name: '一起泡脚', category: '居家与日常陪伴', icon: '🦶' },
-
-  // Category 4: 🎉 节日与仪式感
-  { name: '一起过生日', category: '节日与仪式感', icon: '🎂' },
-  { name: '一起过情人节', category: '节日与仪式感', icon: '🌹' },
-  { name: '一起庆祝纪念日', category: '节日与仪式感', icon: '💖' },
-  { name: '一起跨年', category: '节日与仪式感', icon: '🎆' },
-  { name: '给对方准备礼物', category: '节日与仪式感', icon: '🎁' },
-  { name: '给对方送花', category: '节日与仪式感', icon: '💐' },
-  { name: '一起参加别人的婚礼', category: '节日与仪式感', icon: '💒' },
-  { name: '一起去听一场演唱会', category: '节日与仪式感', icon: '🎤' },
-  { name: '一起放孔明灯', category: '节日与仪式感', icon: '🏮' },
-  { name: '一起看烟花', category: '节日与仪式感', icon: '🎆' },
-  { name: '一起领结婚证', category: '节日与仪式感', icon: '💍' },
-  { name: '一起结婚', category: '节日与仪式感', icon: '👰' },
-
-  // Category 5: 👫 情侣专属互动
-  { name: '一起穿情侣装', category: '情侣专属互动', icon: '👕' },
-  { name: '一起制作专属相册', category: '情侣专属互动', icon: '📖' },
-  { name: '一起用情侣手机壳', category: '情侣专属互动', icon: '📱' },
-  { name: '一起发朋友圈合照', category: '情侣专属互动', icon: '📷' },
-  { name: '一起拍日常vlog', category: '情侣专属互动', icon: '📹' },
-  { name: '一起换情侣头像', category: '情侣专属互动', icon: '🖼️' },
-  { name: '一起打电动', category: '情侣专属互动', icon: '🎮' },
-  { name: '一起剪头发', category: '情侣专属互动', icon: '✂️' },
-  { name: '一起刮彩票', category: '情侣专属互动', icon: '🎫' },
-  { name: '一起打扑克', category: '情侣专属互动', icon: '🃏' },
-  { name: '陪艳艳做美甲', category: '情侣专属互动', icon: '💅' },
-  { name: '一起diy戒指', category: '情侣专属互动', icon: '💍' },
-  { name: '海底世界', category: '情侣专属互动', icon: '🐠' },
-  { name: '一起拼豆', category: '情侣专属互动', icon: '🎨' },
-  { name: '一起做蛋糕', category: '情侣专属互动', icon: '🍰' },
-  { name: '一起做陶瓷', category: '情侣专属互动', icon: '🏺' },
-  { name: '吵架', category: '情侣专属互动', icon: '⚡' },
-  { name: '一起拍情侣写真', category: '情侣专属互动', icon: '📸' },
-  { name: '一起去K歌', category: '情侣专属互动', icon: '🎤' },
-  { name: '一起见对方父母', category: '情侣专属互动', icon: '👪' },
-
-  // Category 6: 🚗 交通与住宿体验
-  { name: '拥有车子', category: '交通与住宿体验', icon: '🚗' },
-  { name: '一起坐飞机', category: '交通与住宿体验', icon: '✈️' },
-  { name: '一起住民宿', category: '交通与住宿体验', icon: '🏨' },
-  { name: '一起坐缆车', category: '交通与住宿体验', icon: '🚡' },
-  { name: '一起钓鱼', category: '交通与住宿体验', icon: '🎣' },
-  { name: '一起潜水', category: '交通与住宿体验', icon: '🤿' },
-  { name: '一起坐直升机', category: '交通与住宿体验', icon: '🚁' },
-
-  // Category 7: 🧘 健康与自我提升
-  { name: '一起打羽毛球', category: '健康与自我提升', icon: '🏸' },
-  { name: '一起去体检', category: '健康与自我提升', icon: '🩺' },
-  { name: '一起打雪仗', category: '健康与自我提升', icon: '❄️' },
-  { name: '一起冲浪', category: '健康与自我提升', icon: '🏄' },
-
-  // Category 8: 💞 人生大事与未来规划
-  { name: '介绍给彼此的朋友', category: '人生大事与未来规划', icon: '👥' },
-  { name: '一起买房子', category: '人生大事与未来规划', icon: '🏠' },
-  { name: '一起生娃', category: '人生大事与未来规划', icon: '👶' },
-  { name: '一起白头偕老', category: '人生大事与未来规划', icon: '👵' },
-  { name: '一起买家具', category: '人生大事与未来规划', icon: '🛋️' },
-  { name: '一起开一家幸福餐厅', category: '人生大事与未来规划', icon: '🏪' },
-
-  // Category 9: 📸 娱乐与休闲活动
-  { name: '一起看电影', category: '娱乐与休闲活动', icon: '🎬' },
-];
-
-const DEFAULT_PRESET_CATEGORIES = [
-  '美食与日常饮食',
-  '旅行与户外活动',
-  '居家与日常陪伴',
-  '节日与仪式感',
-  '情侣专属互动',
-  '交通与住宿体验',
-  '健康与自我提升',
-  '人生大事与未来规划',
-  '娱乐与休闲活动',
-];
-
 export const Checklist: React.FC = () => {
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [profiles, setProfiles] = useState<any[]>([]);
-  const [items, setItems] = useState<DBChecklistItem[]>([]);
-  const [completions, setCompletions] = useState<CompletionItem[]>([]);
-  const [logs, setLogs] = useState<AuditLog[]>([]);
-  const [hasUnreadLogs, setHasUnreadLogs] = useState(false);
+  const {
+    currentUser,
+    profiles,
+    items,
+    completions,
+    logs,
+    hasUnreadLogs,
+    setHasUnreadLogs,
+    loading,
+    rawCategories,
+    dbCategories,
+    loveWishes,
+    checklistUploading,
+    checklistUploadProgress,
+    toast,
+    setToast,
+    getNickname,
+    handleAddWish,
+    handleClaimWish,
+    handleAchieveWish,
+    handleDeleteWish,
+    handleCreateCategory,
+    handleSaveCategoryName,
+    handleDeleteCategory,
+    handleCreateItem,
+    handleUpdateItem,
+    handleDeleteItem,
+    handleCompleteItem,
+    handleEditCompletion,
+    handleDeleteCompletion,
+  } = useChecklistData();
+
+  const wishUploading = checklistUploading;
 
   // Navigation / Filter state
   const [selectedCategory, setSelectedCategory] = useState('全部');
@@ -259,20 +117,14 @@ export const Checklist: React.FC = () => {
   const [createDropOpen, setCreateDropOpen] = useState(false);
   const [editDropOpen, setEditDropOpen] = useState(false);
 
-  // Dynamic categories state
-  const [rawCategories, setRawCategories] = useState<DBCategoryItem[]>([]);
-  const [dbCategories, setDbCategories] = useState<string[]>([]);
-
   // Completion timeline and repeat check-in states
   const [editingCompId, setEditingCompId] = useState<string | null>(null);
   const [editingCompDate, setEditingCompDate] = useState('');
   const [editingCompNotes, setEditingCompNotes] = useState('');
   const [showAgainForm, setShowAgainForm] = useState(false);
 
-  // Media upload states for checklist completion
+  // Media upload local file states for checklist completion
   const [checklistMediaFiles, setChecklistMediaFiles] = useState<File[]>([]);
-  const [checklistUploading, setChecklistUploading] = useState(false);
-  const [checklistUploadProgress, setChecklistUploadProgress] = useState(0);
 
   // States for editing completion media
   const [editingCompMediaUrls, setEditingCompMediaUrls] = useState<string[]>([]);
@@ -312,28 +164,16 @@ export const Checklist: React.FC = () => {
   const [compToDelete, setCompToDelete] = useState<CompletionItem | null>(null);
   const [deleteCompIndex, setDeleteCompIndex] = useState<number | null>(null);
 
-  // Loading
-  const [loading, setLoading] = useState(true);
-
   const [timeMachineOpen, setTimeMachineOpen] = useState(false);
   const [hasAutoTriggered, setHasAutoTriggered] = useState(false);
 
   // Wishlist States
   const [activeTab, setActiveTab] = useState<'checklist' | 'wishlist'>('checklist');
-  const [loveWishes, setLoveWishes] = useState<any[]>([]);
   const [wishModalOpen, setWishModalOpen] = useState(false);
   const [wishTitle, setWishTitle] = useState('');
   const [wishExpectation, setWishExpectation] = useState(3);
   const [wishImageUrl, setWishImageUrl] = useState('');
   const [wishMediaFile, setWishMediaFile] = useState<File | null>(null);
-  const [wishUploading, setWishUploading] = useState(false);
-
-  // Custom Toast notification
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
-    setToast({ message, type });
-  };
 
   // Swipe Handlers for Lightbox Touch Gestures
   const touchStartX = React.useRef(0);
@@ -353,69 +193,19 @@ export const Checklist: React.FC = () => {
     const threshold = 50;
     const diff = touchStartX.current - touchEndX.current;
     if (diff > threshold) {
-      // Swipe Left -> Go to Next Image
       setZoomIndex((prev) => (prev === zoomImages.length - 1 ? 0 : prev + 1));
     } else if (diff < -threshold) {
-      // Swipe Right -> Go to Prev Image
       setZoomIndex((prev) => (prev === 0 ? zoomImages.length - 1 : prev - 1));
     }
   };
 
+  // Toast autoclose
   useEffect(() => {
     if (toast) {
       const timer = setTimeout(() => setToast(null), 3000);
       return () => clearTimeout(timer);
     }
-  }, [toast]);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        setCurrentUser(user);
-        fetchProfiles();
-        initData();
-      }
-    });
-
-    // Realtime listeners
-    const itemsChannel = supabase
-      .channel('public:love_checklist_items_v2')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'love_checklist_items' }, () => {
-        fetchItems();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'love_checklist_completions' }, () => {
-        fetchCompletions();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'love_checklist_logs' }, () => {
-        fetchLogs();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'love_checklist_categories' }, () => {
-        fetchCategories();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'love_wishes' }, () => {
-        fetchWishes();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(itemsChannel);
-    };
-  }, []);
-
-  // Listen for logs or current user changes to calculate unread status
-  useEffect(() => {
-    if (logs.length > 0 && currentUser) {
-      const lastViewedStr = localStorage.getItem('checklist_logs_last_viewed');
-      if (!lastViewedStr) {
-        const hasPartnerLog = logs.some(log => log.operator_id !== currentUser.id);
-        setHasUnreadLogs(hasPartnerLog);
-      } else {
-        const lastViewed = new Date(lastViewedStr);
-        const unread = logs.some(log => log.operator_id !== currentUser.id && new Date(log.created_at) > lastViewed);
-        setHasUnreadLogs(unread);
-      }
-    }
-  }, [logs, currentUser]);
+  }, [toast, setToast]);
 
   // Anniversary Auto-Trigger Effect
   useEffect(() => {
@@ -431,8 +221,6 @@ export const Checklist: React.FC = () => {
         if (data && data.anniversary_date) {
           const together = new Date(data.anniversary_date);
           const today = new Date();
-          
-          // Check if today matches the anniversary day (e.g., the 20th of every month)
           if (today.getDate() === together.getDate()) {
             setTimeMachineOpen(true);
             setHasAutoTriggered(true);
@@ -445,578 +233,84 @@ export const Checklist: React.FC = () => {
     checkAnniversary();
   }, [currentUser, hasAutoTriggered]);
 
-  const fetchProfiles = async () => {
-    const { data } = await supabase.from('profiles').select('*');
-    if (data) setProfiles(data);
-  };
-
-  const getNickname = (userId: string) => {
-    const p = profiles.find((prof) => prof.id === userId);
-    return p ? p.nickname : '伴侣';
-  };
-
-  const uploadMediaFiles = async (files: File[]): Promise<string[]> => {
-    if (files.length === 0) return [];
-    setChecklistUploading(true);
-    setChecklistUploadProgress(0);
-
-    const urls: string[] = [];
-    try {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const fileExt = file.name.split('.').pop();
-        const filePath = `checklist/${currentUser?.id || 'unknown'}_${Date.now()}_${i}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('media')
-          .upload(filePath, file);
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('media')
-          .getPublicUrl(filePath);
-
-        urls.push(publicUrl);
-        setChecklistUploadProgress(Math.round(((i + 1) / files.length) * 100));
-      }
-      return urls;
-    } catch (err: any) {
-      console.error('Checklist media upload failed:', err);
-      showToast('图片上传失败: ' + err.message, 'error');
-      throw err;
-    } finally {
-      setChecklistUploading(false);
-      setChecklistUploadProgress(0);
-    }
-  };
-
-  const initData = async () => {
-    setLoading(true);
-    await fetchCategories();
-    await fetchItems();
-    await fetchCompletions();
-    await fetchLogs();
-    await fetchWishes();
-    setLoading(false);
-  };
-
-  const fetchWishes = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('love_wishes')
-        .select('*')
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      if (data) setLoveWishes(data);
-    } catch (err: any) {
-      console.error('Error fetching wishes:', err.message);
-    }
-  };
-
-  const handleAddWish = async (e: React.FormEvent) => {
+  // UI Event Handlers mapping to Hook Mutations
+  const onAddWish = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser || !wishTitle.trim()) return;
-
-    setWishUploading(true);
-    let uploadedUrl = wishImageUrl;
-
+    if (!wishTitle.trim()) return;
     try {
-      // 1. If user selected a local file, upload it to storage
-      if (wishMediaFile) {
-        const fileExt = wishMediaFile.name.split('.').pop();
-        const filePath = `wishes/${currentUser.id}_${Date.now()}.${fileExt}`;
-        const { error: uploadErr } = await supabase.storage
-          .from('media')
-          .upload(filePath, wishMediaFile);
-
-        if (uploadErr) throw uploadErr;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('media')
-          .getPublicUrl(filePath);
-
-        uploadedUrl = publicUrl;
-      }
-
-      // 2. Insert wish row
-      const { error: insertErr } = await supabase
-        .from('love_wishes')
-        .insert({
-          creator_id: currentUser.id,
-          title: wishTitle.trim(),
-          image_url: uploadedUrl || null,
-          expectation: wishExpectation,
-          status: 'pending'
-        });
-
-      if (insertErr) throw insertErr;
-
-      // 3. Insert audit log
-      await supabase.from('love_checklist_logs').insert({
-        operator_id: currentUser.id,
-        action_type: 'create',
-        item_name: `心愿:${wishTitle.trim()}`,
-        details: `许下了新的恋爱心愿: “${wishTitle.trim()}” 🌠`,
-      });
-
-      showToast('许愿成功！期待伴侣悄悄发现它吧');
+      await handleAddWish(wishTitle, wishExpectation, wishImageUrl, wishMediaFile);
       setWishTitle('');
       setWishExpectation(3);
       setWishImageUrl('');
       setWishMediaFile(null);
       setWishModalOpen(false);
-      fetchWishes();
-      fetchLogs();
     } catch (err: any) {
-      showToast('许愿失败: ' + err.message, 'error');
-    } finally {
-      setWishUploading(false);
+      console.error(err);
     }
   };
 
-  const handleClaimWish = async (wish: any) => {
-    if (!currentUser || !wish) return;
-
-    try {
-      const { error } = await supabase
-        .from('love_wishes')
-        .update({
-          status: 'claimed',
-          claimed_by: currentUser.id
-        })
-        .eq('id', wish.id);
-
-      if (error) throw error;
-
-      await supabase.from('love_checklist_logs').insert({
-        operator_id: currentUser.id,
-        action_type: 'update',
-        item_name: `心愿:${wish.title}`,
-        details: `悄悄认领了伴侣的愿望: “${wish.title}” 🤫`,
-      });
-
-      showToast('已悄悄认领，去为伴侣筹备惊喜吧！');
-      fetchWishes();
-      fetchLogs();
-    } catch (err: any) {
-      showToast('认领失败: ' + err.message, 'error');
-    }
-  };
-
-  const handleAchieveWish = async (wish: any) => {
-    if (!currentUser || !wish) return;
-
-    try {
-      const { error } = await supabase
-        .from('love_wishes')
-        .update({
-          status: 'achieved',
-          achieved_at: new Date().toISOString()
-        })
-        .eq('id', wish.id);
-
-      if (error) throw error;
-
-      await supabase.from('love_checklist_logs').insert({
-        operator_id: currentUser.id,
-        action_type: 'update',
-        item_name: `心愿:${wish.title}`,
-        details: `帮伴侣实现了愿望: “${wish.title}” 🎉`,
-      });
-
-      // Show confetti celebration
-      confetti({
-        particleCount: 150,
-        spread: 80,
-        origin: { y: 0.6 },
-        colors: ['#ff69b4', '#ffb6c1', '#ffc0cb', '#ff1493', '#db7093']
-      });
-
-      showToast('恭喜！又共同实现了一个恋爱心愿 💖');
-      fetchWishes();
-      fetchLogs();
-    } catch (err: any) {
-      showToast('标记失败: ' + err.message, 'error');
-    }
-  };
-
-  const handleDeleteWish = async (wish: any) => {
-    if (!currentUser || !wish) return;
-    if (wish.creator_id !== currentUser.id) {
-      showToast('只能删除自己许下的心愿哦', 'error');
-      return;
-    }
-
-    try {
-      // 1. Delete image from storage if uploaded
-      if (wish.image_url) {
-        const filePath = getStoragePathFromUrl(wish.image_url);
-        await supabase.storage.from('media').remove([filePath]);
-      }
-
-      // 2. Delete wish row
-      const { error } = await supabase
-        .from('love_wishes')
-        .delete()
-        .eq('id', wish.id);
-
-      if (error) throw error;
-
-      await supabase.from('love_checklist_logs').insert({
-        operator_id: currentUser.id,
-        action_type: 'delete',
-        item_name: `心愿:${wish.title}`,
-        details: `撤销了恋爱心愿: “${wish.title}” 🗑️`,
-      });
-
-      showToast('心愿已撤销');
-      fetchWishes();
-      fetchLogs();
-    } catch (err: any) {
-      showToast('删除失败: ' + err.message, 'error');
-    }
-  };
-
-  const fetchCategories = async () => {
-    try {
-      const { data, error } = await supabase.from('love_checklist_categories').select('*').order('created_at', { ascending: true });
-      if (error) throw error;
-
-      if (data && data.length === 0) {
-        await seedPresetCategories();
-      } else if (data) {
-        setRawCategories(data);
-        setDbCategories(data.map(c => c.name));
-      }
-    } catch (err: any) {
-      console.error('Error fetching categories:', err.message);
-    }
-  };
-
-  const seedPresetCategories = async () => {
-    try {
-      const { error } = await supabase.from('love_checklist_categories').insert(
-        DEFAULT_PRESET_CATEGORIES.map((cat) => ({
-          name: cat,
-        }))
-      );
-      if (error) throw error;
-      const { data: seeded } = await supabase.from('love_checklist_categories').select('*').order('created_at', { ascending: true });
-      if (seeded) {
-        setRawCategories(seeded);
-        setDbCategories(seeded.map(c => c.name));
-      }
-    } catch (err: any) {
-      console.error('Error seeding categories:', err.message);
-    }
-  };
-
-  const handleCreateCategory = async (e: React.FormEvent) => {
+  const handleCreateCategorySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newCategoryName.trim() || !currentUser) return;
-    const name = newCategoryName.trim();
-
-    try {
-      const { error } = await supabase.from('love_checklist_categories').insert({
-        name,
-        created_by: currentUser.id,
-      });
-
-      if (error) throw error;
-
-      await supabase.from('love_checklist_logs').insert({
-        operator_id: currentUser.id,
-        action_type: 'create',
-        item_name: `分类:${name}`,
-        details: `新建了清单分类 “${name}” 🗂️`,
-      });
-
-      showToast(`已成功添加清单分类: ${name}`);
-      setNewCategoryName('');
-      fetchCategories();
-      fetchLogs();
-    } catch (err: any) {
-      showToast('创建分类失败: ' + err.message, 'error');
-    }
+    if (!newCategoryName.trim()) return;
+    await handleCreateCategory(newCategoryName);
+    setNewCategoryName('');
   };
 
-  const handleSaveCategoryName = async (cat: DBCategoryItem) => {
-    if (!editingCategoryName.trim() || !currentUser) return;
-    const newName = editingCategoryName.trim();
-    const originalName = cat.name;
-
-    try {
-      const { error } = await supabase
-        .from('love_checklist_categories')
-        .update({ name: newName })
-        .eq('id', cat.id);
-
-      if (error) throw error;
-
-      await supabase.from('love_checklist_logs').insert({
-        operator_id: currentUser.id,
-        action_type: 'update',
-        item_name: `分类:${newName}`,
-        details: `将清单分类 “${originalName}” 重命名为 “${newName}” ✏️`,
-      });
-
-      showToast('分类重命名成功');
-      setEditingCategoryId(null);
-      setEditingCategoryName('');
-      fetchCategories();
-      fetchItems();
-      fetchLogs();
-    } catch (err: any) {
-      showToast('重命名分类失败: ' + err.message, 'error');
-    }
+  const onSaveCategoryName = async (cat: DBCategoryItem) => {
+    if (!editingCategoryName.trim()) return;
+    await handleSaveCategoryName(cat, editingCategoryName);
+    setEditingCategoryId(null);
+    setEditingCategoryName('');
   };
 
-  const handleDeleteCategory = async () => {
-    if (!categoryToDelete || !currentUser) return;
-
-    try {
-      // Find all items in this category
-      const categoryItems = items.filter(it => it.category === categoryToDelete.name);
-      // For each item, find completions and delete their files from storage
-      for (const item of categoryItems) {
-        const itemComps = completions.filter(c => c.item_id === item.id);
-        for (const comp of itemComps) {
-          if (comp.media && comp.media.length > 0) {
-            const fileNames = comp.media.map((url) => getStoragePathFromUrl(url));
-            await supabase.storage.from('media').remove(fileNames);
-          }
-        }
-      }
-
-      const { error } = await supabase
-        .from('love_checklist_categories')
-        .delete()
-        .eq('id', categoryToDelete.id);
-
-      if (error) throw error;
-
-      await supabase.from('love_checklist_logs').insert({
-        operator_id: currentUser.id,
-        action_type: 'delete',
-        item_name: `分类:${categoryToDelete.name}`,
-        details: `删除了清单分类 “${categoryToDelete.name}” (已同步清空其名下所有打卡事项) 🗑️`,
-      });
-
-      showToast(`已成功删除清单分类: ${categoryToDelete.name}`);
-      setConfirmDeleteCategoryOpen(false);
-      setCategoryToDelete(null);
-      fetchCategories();
-      fetchItems();
-      fetchCompletions();
-      fetchLogs();
-    } catch (err: any) {
-      showToast('删除分类失败: ' + err.message, 'error');
-    }
-  };
-
-  useEffect(() => {
-    if (dbCategories.length > 0 && selectedCategory !== '全部' && !dbCategories.includes(selectedCategory)) {
-      setSelectedCategory('全部');
-    }
-  }, [dbCategories, selectedCategory]);
-
-  useEffect(() => {
-    if (dbCategories.length > 0) {
-      if (!dbCategories.includes(createCategory)) {
-        setCreateCategory(dbCategories[0]);
-      }
-      if (!dbCategories.includes(editCategory)) {
-        setEditCategory(dbCategories[0]);
-      }
-    }
-  }, [dbCategories]);
-
-  const fetchItems = async () => {
-    try {
-      const { data, error } = await supabase.from('love_checklist_items').select('*').order('created_at', { ascending: true });
-      if (error) throw error;
-
-      if (data && data.length === 0) {
-        // Auto-seed preset items if database table is completely empty
-        await seedPresetItems();
-      } else if (data) {
-        setItems(data);
-      }
-    } catch (err: any) {
-      console.error('Error fetching checklist items:', err.message);
-    }
-  };
-
-  const seedPresetItems = async () => {
-    try {
-      const { error } = await supabase.from('love_checklist_items').insert(
-        DEFAULT_PRESET_ITEMS.map((item) => ({
-          name: item.name,
-          category: item.category,
-          icon: item.icon,
-          is_preset: true,
-        }))
-      );
-      if (error) throw error;
-      // Fetch again after seeding
-      const { data: seeded } = await supabase.from('love_checklist_items').select('*').order('created_at', { ascending: true });
-      if (seeded) setItems(seeded);
-    } catch (err: any) {
-      console.error('Error seeding preset items:', err.message);
-    }
-  };
-
-  const fetchCompletions = async () => {
-    const { data } = await supabase.from('love_checklist_completions').select('*');
-    if (data) setCompletions(data);
-  };
-
-  const fetchLogs = async () => {
-    const { data } = await supabase.from('love_checklist_logs').select('*').order('created_at', { ascending: false }).limit(40);
-    if (data) setLogs(data);
-  };
-
-  // Spark confetti animation
-  const triggerConfetti = () => {
-    const duration = 2.5 * 1000;
-    const end = Date.now() + duration;
-
-    (function frame() {
-      confetti({
-        particleCount: 4,
-        angle: 60,
-        spread: 55,
-        origin: { x: 0, y: 0.8 },
-        colors: ['#ffb3c1', '#ffc6ff', '#fee4e6', '#ff85a1']
-      });
-      confetti({
-        particleCount: 4,
-        angle: 120,
-        spread: 55,
-        origin: { x: 1, y: 0.8 },
-        colors: ['#ffb3c1', '#ffc6ff', '#fee4e6', '#ff85a1']
-      });
-
-      if (Date.now() < end) {
-        requestAnimationFrame(frame);
-      }
-    }());
-  };
-
-  // Create custom item
-  const handleCreateItem = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!createName.trim() || !currentUser) return;
-
-    try {
-      // 1. Insert checklist item
-      const { error } = await supabase.from('love_checklist_items').insert({
-        name: createName.trim(),
-        category: createCategory,
-        icon: createIcon.trim() || '❤️',
-        is_preset: false,
-        created_by: currentUser.id,
-      }).select();
-
-      if (error) throw error;
-
-      // 2. Insert operator activity log
-      await supabase.from('love_checklist_logs').insert({
-        operator_id: currentUser.id,
-        action_type: 'create',
-        item_name: createName.trim(),
-        details: `添加了清单项：${createIcon} ${createName.trim()} [${createCategory}]`,
-      });
-
-      showToast(`已成功添加清单项: ${createName}`);
-      setCreateName('');
-      setCreateIcon('❤️');
-      setCreateModalOpen(false);
-      fetchItems();
-      fetchLogs();
-    } catch (err: any) {
-      showToast('创建失败: ' + err.message, 'error');
-    }
-  };
-
-  // Edit item metadata (Definition)
-  const handleSaveItemDefinition = async () => {
-    if (!activeItem || !editName.trim() || !currentUser) return;
-
-    try {
-      const originalName = activeItem.name;
-      const { error } = await supabase
-        .from('love_checklist_items')
-        .update({
-          name: editName.trim(),
-          category: editCategory,
-          icon: editIcon.trim() || '❤️',
-        })
-        .eq('id', activeItem.id);
-
-      if (error) throw error;
-
-      // Log the update
-      await supabase.from('love_checklist_logs').insert({
-        operator_id: currentUser.id,
-        action_type: 'update',
-        item_name: editName.trim(),
-        details: `将项目 “${originalName}” 修改为 “${editIcon} ${editName.trim()} [${editCategory}]”`,
-      });
-
-      showToast('清单项目信息更新成功');
-      setEditDefOpen(false);
-      setCompletionModalOpen(false);
-      fetchItems();
-      fetchLogs();
-    } catch (err: any) {
-      showToast('更新失败: ' + err.message, 'error');
-    }
-  };
-
-  // Delete item metadata completely (and cascade completions)
-  const handleDeleteItemDefinition = async () => {
-    if (!activeItem || !currentUser) return;
-
-    try {
-      // Find all completions of this item to delete their files first
-      const itemComps = completions.filter((c) => c.item_id === activeItem.id);
+  const onDeleteCategoryConfirm = async () => {
+    if (!categoryToDelete) return;
+    const categoryItems = items.filter(it => it.category === categoryToDelete.name);
+    for (const item of categoryItems) {
+      const itemComps = completions.filter(c => c.item_id === item.id);
       for (const comp of itemComps) {
         if (comp.media && comp.media.length > 0) {
           const fileNames = comp.media.map((url) => getStoragePathFromUrl(url));
-          await supabase.storage.from('media').remove(fileNames);
+          await supabase.storage.from('media').remove(fileNames).catch(console.error);
         }
       }
-
-      const { error } = await supabase
-        .from('love_checklist_items')
-        .delete()
-        .eq('id', activeItem.id);
-
-      if (error) throw error;
-
-      // Log the deletion
-      await supabase.from('love_checklist_logs').insert({
-        operator_id: currentUser.id,
-        action_type: 'delete',
-        item_name: activeItem.name,
-        details: `删除了清单事项 “${activeItem.icon} ${activeItem.name}”`,
-      });
-
-      showToast(`已成功删除清单项: ${activeItem.name}`);
-      setConfirmDeleteOpen(false);
-      setEditDefOpen(false);
-      setCompletionModalOpen(false);
-      fetchItems();
-      fetchLogs();
-      fetchCompletions();
-    } catch (err: any) {
-      showToast('删除失败: ' + err.message, 'error');
     }
+    await handleDeleteCategory(categoryToDelete);
+    setConfirmDeleteCategoryOpen(false);
+    setCategoryToDelete(null);
   };
 
-  // Open item card to edit completion date or notes
+  const handleCreateItemSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!createName.trim()) return;
+    await handleCreateItem(createName, createCategory, createIcon);
+    setCreateName('');
+    setCreateIcon('❤️');
+    setCreateModalOpen(false);
+  };
+
+  const onSaveItemDefinition = async () => {
+    if (!activeItem || !editName.trim()) return;
+    await handleUpdateItem(activeItem.id, editName, editCategory, editIcon);
+    setEditDefOpen(false);
+    setCompletionModalOpen(false);
+  };
+
+  const onDeleteItemDefinition = async () => {
+    if (!activeItem) return;
+    const itemComps = completions.filter((c) => c.item_id === activeItem.id);
+    for (const comp of itemComps) {
+      if (comp.media && comp.media.length > 0) {
+        const fileNames = comp.media.map((url) => getStoragePathFromUrl(url));
+        await supabase.storage.from('media').remove(fileNames).catch(console.error);
+      }
+    }
+    await handleDeleteItem(activeItem.id, activeItem.name);
+    setConfirmDeleteOpen(false);
+    setEditDefOpen(false);
+    setCompletionModalOpen(false);
+  };
+
   const handleCardClick = (item: DBChecklistItem) => {
     setActiveItem(item);
     setChecklistMediaFiles([]);
@@ -1049,138 +343,51 @@ export const Checklist: React.FC = () => {
     setCompletionModalOpen(true);
   };
 
-  // Save/Complete checklist item (inserts a new completion record)
-  const handleSaveCompletion = async () => {
-    if (!activeItem || !currentUser) return;
-    const itemComps = completions.filter((c) => c.item_id === activeItem.id);
-    const nextCount = itemComps.length + 1;
-
-    try {
-      // 1. Upload files first
-      let uploadedUrls: string[] = [];
-      if (checklistMediaFiles.length > 0) {
-        uploadedUrls = await uploadMediaFiles(checklistMediaFiles);
-      }
-
-      // 2. Insert record
-      const { error } = await supabase.from('love_checklist_completions').insert({
-        item_id: activeItem.id,
-        completed_by: currentUser.id,
-        completed_at: modalDate,
-        notes: modalNotes || null,
-        media: uploadedUrls,
-      });
-
-      if (error) throw error;
-
-      // Log completion
-      await supabase.from('love_checklist_logs').insert({
-        operator_id: currentUser.id,
-        action_type: 'complete',
-        item_name: activeItem.name,
-        details: `达成了目标：${activeItem.icon} ${activeItem.name} (第 ${nextCount} 次打卡)${modalNotes ? ` [备忘: "${modalNotes}"]` : ''}`,
-      });
-
-      triggerConfetti();
-      showToast(`已达成打卡：${activeItem.name} ✨`);
-      setCompletionModalOpen(false);
-      setShowAgainForm(false);
-      setModalNotes('');
-      setChecklistMediaFiles([]);
-      fetchCompletions();
-      fetchLogs();
-    } catch (err: any) {
-      showToast('保存失败: ' + err.message, 'error');
-    }
+  const onSaveCompletion = async () => {
+    if (!activeItem) return;
+    await handleCompleteItem(activeItem.id, activeItem.name, modalDate, modalNotes, checklistMediaFiles);
+    setCompletionModalOpen(false);
+    setShowAgainForm(false);
+    setModalNotes('');
+    setChecklistMediaFiles([]);
   };
 
-  // Update a single historical completion record
-  const handleUpdateSingleCompletion = async (compId: string, originalDate: string) => {
-    if (!activeItem || !currentUser) return;
-
-    try {
-      // 1. Upload new media files if any
-      let newUrls: string[] = [];
-      if (editingNewMediaFiles.length > 0) {
-        newUrls = await uploadMediaFiles(editingNewMediaFiles);
+  const onUpdateSingleCompletion = async (compId: string, _originalDate: string) => {
+    if (!activeItem) return;
+    const originalComp = completions.find(c => c.id === compId);
+    if (originalComp && originalComp.media && originalComp.media.length > 0) {
+      const deletedUrls = originalComp.media.filter(url => !editingCompMediaUrls.includes(url));
+      if (deletedUrls.length > 0) {
+        const fileNames = deletedUrls.map((url) => getStoragePathFromUrl(url));
+        await supabase.storage.from('media').remove(fileNames).catch(console.error);
       }
-
-      // 2. Combine remaining existing media URLs and newly uploaded ones
-      const finalUrls = [...editingCompMediaUrls, ...newUrls];
-
-      // 3. Find files deleted by the user to remove them from Supabase Storage
-      const originalComp = completions.find(c => c.id === compId);
-      if (originalComp && originalComp.media && originalComp.media.length > 0) {
-        const deletedUrls = originalComp.media.filter(url => !editingCompMediaUrls.includes(url));
-        if (deletedUrls.length > 0) {
-          const fileNames = deletedUrls.map((url) => getStoragePathFromUrl(url));
-          await supabase.storage.from('media').remove(fileNames);
-        }
-      }
-
-      // 4. Update completion in DB
-      const { error } = await supabase
-        .from('love_checklist_completions')
-        .update({
-          completed_at: editingCompDate,
-          notes: editingCompNotes || null,
-          media: finalUrls,
-        })
-        .eq('id', compId);
-
-      if (error) throw error;
-
-      // Log update
-      await supabase.from('love_checklist_logs').insert({
-        operator_id: currentUser.id,
-        action_type: 'update',
-        item_name: activeItem.name,
-        details: `修改了 “${activeItem.name}” 的打卡足迹记录 (原日期 ${originalDate} ➡️ 新日期 ${editingCompDate})${editingCompNotes ? ` [备忘: "${editingCompNotes}"]` : ''}`,
-      });
-
-      showToast('历史打卡足迹更新成功');
-      setEditingCompId(null);
-      setEditingNewMediaFiles([]);
-      fetchCompletions();
-      fetchLogs();
-    } catch (err: any) {
-      showToast('更新失败: ' + err.message, 'error');
     }
+    await handleEditCompletion(compId, editingCompDate, editingCompNotes, editingCompMediaUrls, editingNewMediaFiles, activeItem.name);
+    setEditingCompId(null);
+    setEditingNewMediaFiles([]);
   };
 
-  // Delete a single historical completion record
   const handleDeleteSingleCompletion = async (comp: CompletionItem) => {
-    if (!activeItem || !currentUser) return;
-
-    try {
-      // 1. Delete associated media files from storage if present
-      if (comp.media && comp.media.length > 0) {
-        const fileNames = comp.media.map((url) => getStoragePathFromUrl(url));
-        await supabase.storage.from('media').remove(fileNames);
-      }
-
-      const { error } = await supabase
-        .from('love_checklist_completions')
-        .delete()
-        .eq('id', comp.id);
-
-      if (error) throw error;
-
-      // Log deletion
-      await supabase.from('love_checklist_logs').insert({
-        operator_id: currentUser.id,
-        action_type: 'uncomplete',
-        item_name: activeItem.name,
-        details: `取消/删除了 “${activeItem.icon} ${activeItem.name}” 的一次打卡足迹记录 (打卡日期: ${comp.completed_at})`,
-      });
-
-      showToast('已删除该次打卡足迹');
-      fetchCompletions();
-      fetchLogs();
-    } catch (err: any) {
-      showToast('删除足迹失败: ' + err.message, 'error');
-    }
+    if (!activeItem) return;
+    await handleDeleteCompletion(comp, activeItem.name);
   };
+
+  useEffect(() => {
+    if (dbCategories.length > 0 && selectedCategory !== '全部' && !dbCategories.includes(selectedCategory)) {
+      setSelectedCategory('全部');
+    }
+  }, [dbCategories, selectedCategory]);
+
+  useEffect(() => {
+    if (dbCategories.length > 0) {
+      if (!dbCategories.includes(createCategory)) {
+        setCreateCategory(dbCategories[0]);
+      }
+      if (!dbCategories.includes(editCategory)) {
+        setEditCategory(dbCategories[0]);
+      }
+    }
+  }, [dbCategories, createCategory, editCategory]);
 
   // Filter items
   const filteredItems = items.filter((item) => {
@@ -1221,9 +428,11 @@ export const Checklist: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center">
-        <Heart className="text-rose-500 animate-glow-breath" size={40} fill="currentColor" />
-        <p className="text-xs text-rose-700/80 font-bold mt-4 tracking-wider">正在加载清单数据...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#fdf6f0] via-[#fee4e6] to-[#fceade]">
+        <div className="w-16 h-16 rounded-2xl bg-white/85 border border-rose-100 shadow-md flex items-center justify-center animate-glow-breath mb-4">
+          <Heart className="text-rose-500 animate-pulse" size={30} fill="currentColor" />
+        </div>
+        <p className="text-xs text-rose-700/80 font-bold tracking-wider animate-pulse">正在加载清单数据...</p>
       </div>
     );
   }
@@ -1620,9 +829,9 @@ export const Checklist: React.FC = () => {
                         {isMine && wish.status !== 'achieved' && (
                           <button
                             onClick={() => {
-                              if (window.confirm('确认撤销这个愿望吗？')) {
+                              (window as any).showCustomConfirm('撤销心愿', '确认撤销这个愿望吗？', () => {
                                 handleDeleteWish(wish);
-                              }
+                              });
                             }}
                             className="p-1 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
                             title="撤销心愿"
@@ -1842,7 +1051,7 @@ export const Checklist: React.FC = () => {
                                 <button
                                   type="button"
                                   disabled={checklistUploading}
-                                  onClick={() => handleUpdateSingleCompletion(comp.id, comp.completed_at)}
+                                  onClick={() => onUpdateSingleCompletion(comp.id, comp.completed_at)}
                                   className="px-2 py-0.5 text-[9px] font-bold text-white bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 rounded-md transition flex items-center space-x-1"
                                 >
                                   {checklistUploading ? (
@@ -2148,7 +1357,7 @@ export const Checklist: React.FC = () => {
                   <button
                     type="button"
                     disabled={checklistUploading}
-                    onClick={handleSaveCompletion}
+                    onClick={onSaveCompletion}
                     className="flex-grow py-2 text-xs font-bold text-white bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 rounded-xl transition shadow-xs flex items-center justify-center space-x-1"
                   >
                     {checklistUploading ? (
@@ -2184,7 +1393,7 @@ export const Checklist: React.FC = () => {
       {/* Modal 2: Create Custom Checklist Item Definition */}
       {createModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-[1000] flex items-center justify-center p-4 animate-fade-in">
-          <form onSubmit={handleCreateItem} className="glass-panel max-w-sm w-full p-6 rounded-3xl border border-rose-100/50 shadow-2xl space-y-4 animate-slide-up bg-white/95 relative">
+          <form onSubmit={handleCreateItemSubmit} className="glass-panel max-w-sm w-full p-6 rounded-3xl border border-rose-100/50 shadow-2xl space-y-4 animate-slide-up bg-white/95 relative">
             <button
               type="button"
               onClick={() => setCreateModalOpen(false)}
@@ -2355,7 +1564,7 @@ export const Checklist: React.FC = () => {
                 <Trash2 size={14} />
               </button>
               <button
-                onClick={handleSaveItemDefinition}
+                onClick={onSaveItemDefinition}
                 className="flex-grow py-2.5 text-xs font-bold text-white bg-rose-500 hover:bg-rose-600 rounded-xl transition active:scale-95 shadow-md shadow-rose-200"
               >
                 保存修改
@@ -2452,7 +1661,7 @@ export const Checklist: React.FC = () => {
                 取消
               </button>
               <button
-                onClick={handleDeleteItemDefinition}
+                onClick={onDeleteItemDefinition}
                 className="flex-1 py-2 text-xs font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl transition active:scale-95 shadow-md"
               >
                 彻底删除
@@ -2524,7 +1733,7 @@ export const Checklist: React.FC = () => {
             {/* List and form */}
             <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
               {/* Form to create new category */}
-              <form onSubmit={handleCreateCategory} className="flex space-x-2">
+              <form onSubmit={handleCreateCategorySubmit} className="flex space-x-2">
                 <input
                   type="text"
                   required
@@ -2559,7 +1768,7 @@ export const Checklist: React.FC = () => {
                           />
                           <button
                             type="button"
-                            onClick={() => handleSaveCategoryName(cat)}
+                            onClick={() => onSaveCategoryName(cat)}
                             className="px-3 py-1 text-[10px] font-bold text-white bg-green-500 hover:bg-green-600 rounded-lg transition active:scale-95 shrink-0"
                           >
                             保存
@@ -2637,7 +1846,7 @@ export const Checklist: React.FC = () => {
                 取消
               </button>
               <button
-                onClick={handleDeleteCategory}
+                onClick={onDeleteCategoryConfirm}
                 className="flex-1 py-2 text-xs font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl transition active:scale-95 shadow-md"
               >
                 彻底删除
@@ -2747,7 +1956,7 @@ export const Checklist: React.FC = () => {
               <h2 className="text-sm font-extrabold">许下我的心愿</h2>
             </div>
 
-            <form onSubmit={handleAddWish} className="space-y-4">
+            <form onSubmit={onAddWish} className="space-y-4">
               {/* Title input */}
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black text-rose-800 flex items-center">

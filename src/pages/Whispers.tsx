@@ -385,34 +385,38 @@ export const Whispers: React.FC = () => {
   };
 
   const handleDeleteLetter = async (id: string, images: string[]) => {
-    if (!window.confirm('确定要删除这封珍贵的情书吗？此操作无法撤销。')) return;
+    (window as any).showCustomConfirm(
+      '确认删除 🗑️',
+      '确定要删除这封珍贵的情书吗？此操作无法撤销。',
+      async () => {
+        try {
+          // 1. Delete associated images from storage
+          if (images && images.length > 0) {
+            const filesToRemove = images.map(url => {
+              const relativePath = getStoragePathFromUrl(url);
+              return relativePath || url.split('/').pop() || '';
+            }).filter(Boolean);
 
-    try {
-      // 1. Delete associated images from storage
-      if (images && images.length > 0) {
-        const filesToRemove = images.map(url => {
-          const relativePath = getStoragePathFromUrl(url);
-          return relativePath || url.split('/').pop() || '';
-        }).filter(Boolean);
+            if (filesToRemove.length > 0) {
+              await supabase.storage.from('media').remove(filesToRemove);
+            }
+          }
 
-        if (filesToRemove.length > 0) {
-          await supabase.storage.from('media').remove(filesToRemove);
+          // 2. Delete letter record
+          const { error } = await supabase.from('love_letters').delete().eq('id', id);
+          if (error) throw error;
+
+          showToast('情书已成云烟，成功收回 🍃');
+          if (selectedLetter?.id === id) {
+            setSelectedLetter(null);
+          }
+          fetchLetters();
+        } catch (err: any) {
+          console.error('Error deleting letter:', err);
+          showToast('删除失败: ' + err.message, 'error');
         }
       }
-
-      // 2. Delete letter record
-      const { error } = await supabase.from('love_letters').delete().eq('id', id);
-      if (error) throw error;
-
-      showToast('情书已成云烟，成功收回 🍃');
-      if (selectedLetter?.id === id) {
-        setSelectedLetter(null);
-      }
-      fetchLetters();
-    } catch (err: any) {
-      console.error('Error deleting letter:', err);
-      showToast('删除失败: ' + err.message, 'error');
-    }
+    );
   };
 
   const handleLetterClick = async (letter: any) => {

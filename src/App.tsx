@@ -9,6 +9,7 @@ import { MonthlyReview } from './pages/MonthlyReview';
 import { Checklist } from './pages/Checklist';
 import { PartnerWiki } from './pages/PartnerWiki';
 import { Navbar } from './components/Navbar';
+import { CustomModal } from './components/CustomModal';
 import { Heart, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -36,6 +37,7 @@ export const App: React.FC = () => {
   const [theme, setTheme] = useState('sunset');
   const [hasUnreadWhispers, setHasUnreadWhispers] = useState(false);
   const [hasUnreadChecklist, setHasUnreadChecklist] = useState(false);
+  const [hasReviewProposal, setHasReviewProposal] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [profiles, setProfiles] = useState<any[]>([]);
@@ -44,6 +46,75 @@ export const App: React.FC = () => {
   // Polaroid Love Card states
   const [unreadLoveCard, setUnreadLoveCard] = useState<any | null>(null);
   const [showQuickReturn, setShowQuickReturn] = useState(false);
+  const [isTeaRoomActive, setIsTeaRoomActive] = useState(false);
+
+  // PWA 一键更新 Banner
+  const [pwaUpdateFn, setPwaUpdateFn] = useState<(() => void) | null>(null);
+
+  // Global custom styled dialog state
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'alert' | 'confirm';
+    onConfirm?: () => void;
+    onCancel?: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'alert'
+  });
+
+  useEffect(() => {
+    (window as any).showCustomConfirm = (title: string, message: string, onConfirm: () => void, onCancel?: () => void) => {
+      setModalConfig({
+        isOpen: true,
+        title,
+        message,
+        type: 'confirm',
+        onConfirm: () => {
+          onConfirm();
+          setModalConfig(prev => ({ ...prev, isOpen: false }));
+        },
+        onCancel: () => {
+          if (onCancel) onCancel();
+          setModalConfig(prev => ({ ...prev, isOpen: false }));
+        }
+      });
+    };
+
+    (window as any).showCustomAlert = (title: string, message: string) => {
+      setModalConfig({
+        isOpen: true,
+        title,
+        message,
+        type: 'alert',
+        onConfirm: () => setModalConfig(prev => ({ ...prev, isOpen: false }))
+      });
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleTeaRoomStatus = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      setIsTeaRoomActive(!!customEvent.detail);
+    };
+    window.addEventListener('tea-room-status', handleTeaRoomStatus);
+    return () => {
+      window.removeEventListener('tea-room-status', handleTeaRoomStatus);
+    };
+  }, []);
+
+  // ── PWA 新版本更新检测 ─────────────────────────────────────────────
+  useEffect(() => {
+    const handlePwaUpdate = (e: Event) => {
+      const { updateSW } = (e as CustomEvent).detail;
+      setPwaUpdateFn(() => () => updateSW(true));
+    };
+    window.addEventListener('pwa-update-available', handlePwaUpdate);
+    return () => window.removeEventListener('pwa-update-available', handlePwaUpdate);
+  }, []);
 
   useEffect(() => {
     profilesRef.current = profiles;
@@ -87,6 +158,7 @@ export const App: React.FC = () => {
       if (currentSession?.user) {
         checkUnreadWhispers(currentSession.user.id);
         checkUnreadChecklist(currentSession.user.id);
+        checkReviewProposal(currentSession.user.id);
       }
     });
 
@@ -96,9 +168,11 @@ export const App: React.FC = () => {
       if (currentSession?.user) {
         checkUnreadWhispers(currentSession.user.id);
         checkUnreadChecklist(currentSession.user.id);
+        checkReviewProposal(currentSession.user.id);
       } else {
         setHasUnreadWhispers(false);
         setHasUnreadChecklist(false);
+        setHasReviewProposal(false);
       }
     });
 
@@ -123,6 +197,19 @@ export const App: React.FC = () => {
     checkUnreadWhispers(session.user.id);
     checkUnreadChecklist(session.user.id);
     fetchUnreadInteractions(session.user.id);
+    checkReviewProposal(session.user.id);
+
+    // Listen for realtime review changes
+    const reviewChannel = supabase
+      .channel('app:monthly_reviews')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'monthly_reviews' },
+        () => {
+          checkReviewProposal(session.user.id);
+        }
+      )
+      .subscribe();
 
     // Listen for config changes
     const configChannel = supabase
@@ -221,6 +308,7 @@ export const App: React.FC = () => {
       supabase.removeChannel(interactionChannel);
       supabase.removeChannel(checklistChannel);
       supabase.removeChannel(partnerRecordChannel);
+      supabase.removeChannel(reviewChannel);
     };
   }, [session]);
 
@@ -254,6 +342,28 @@ export const App: React.FC = () => {
       setHasUnreadChecklist(data && data.length > 0 ? true : false);
     } catch (err) {
       console.error('Error scanning unread checklist logs:', err);
+    }
+  };
+
+  const checkReviewProposal = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('monthly_reviews')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (!error && data && data.length > 0) {
+        const latest = data[0];
+        const isNegotiatingFromPartner = 
+          latest.status === 'negotiating' && 
+          latest.last_proposer_id !== userId;
+        setHasReviewProposal(isNegotiatingFromPartner);
+      } else {
+        setHasReviewProposal(false);
+      }
+    } catch (err) {
+      console.error('Error scanning review proposal:', err);
     }
   };
 
@@ -593,10 +703,11 @@ export const App: React.FC = () => {
         </div>
 
         {/* Global Bottom Tab Navbar */}
-        {!showSettings && (
+        {!showSettings && !isTeaRoomActive && (
           <Navbar 
             hasUnreadWhispers={hasUnreadWhispers} 
             hasUnreadChecklist={hasUnreadChecklist} 
+            hasReviewProposal={hasReviewProposal}
           />
         )}
 
@@ -737,6 +848,38 @@ export const App: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* PWA 更新提示 Banner */}
+        {pwaUpdateFn && (
+          <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[300] w-[calc(100%-2rem)] max-w-sm">
+            <div className="bg-rose-600 text-white rounded-2xl shadow-xl px-4 py-3 flex items-center justify-between gap-3 animate-slide-up">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-lg shrink-0">✨</span>
+                <div className="min-w-0">
+                  <p className="text-xs font-black leading-tight">新版本已就绪</p>
+                  <p className="text-[10px] text-rose-100 leading-tight truncate">点击立即更新，体验最新功能</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  onClick={() => pwaUpdateFn()}
+                  className="px-3 py-1.5 bg-white text-rose-600 rounded-xl text-[11px] font-black transition hover:bg-rose-50 active:scale-95"
+                >
+                  立即更新
+                </button>
+                <button
+                  onClick={() => setPwaUpdateFn(null)}
+                  className="p-1.5 hover:bg-rose-500 rounded-full transition"
+                >
+                  <span className="text-xs">✕</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Global Custom Styled Dialog Modal */}
+        <CustomModal {...modalConfig} />
       </div>
     </BrowserRouter>
   );

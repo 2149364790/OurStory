@@ -26,7 +26,7 @@ create table if not exists public.partner_records (
   id uuid primary key default gen_random_uuid(),
   creator_id uuid references public.profiles(id) on delete cascade not null,
   target_id uuid references public.profiles(id) on delete cascade not null,
-  type varchar(20) not null check (type in ('advantage', 'wish')),
+  type varchar(20) not null check (type in ('advantage', 'wish', 'love_reason')),
   content text not null,
   is_secret boolean not null default false,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null

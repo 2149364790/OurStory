@@ -226,6 +226,9 @@ export const Home: React.FC<HomeProps> = ({ showSettings, setShowSettings }) => 
   const [newQuoteText, setNewQuoteText] = useState('');
   const [newQuotePeriod, setNewQuotePeriod] = useState<'morning' | 'afternoon' | 'night'>('morning');
 
+  // Proposal modal state
+  const [showProposalModal, setShowProposalModal] = useState(false);
+
   const activePoetryGroups = useMemo(() => {
     return {
       morning: [...poetryGroups.morning, ...(customQuotes.morning || [])],
@@ -272,7 +275,7 @@ export const Home: React.FC<HomeProps> = ({ showSettings, setShowSettings }) => 
   const handleToggleNotification = async () => {
     if (!currentUser) return;
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      alert('抱歉，您的浏览器或设备不支持系统推送通知。');
+      (window as any).showCustomAlert('不支持通知', '抱歉，您的浏览器或设备不支持系统推送通知。');
       return;
     }
 
@@ -282,7 +285,7 @@ export const Home: React.FC<HomeProps> = ({ showSettings, setShowSettings }) => 
         // Request permissions
         const permission = await Notification.requestPermission();
         if (permission !== 'granted') {
-          alert('需要授权通知权限才能接收消息。请在浏览器或系统设置中允许通知权限。');
+          (window as any).showCustomAlert('权限受限', '需要授权通知权限才能接收消息。请在浏览器或系统设置中允许通知权限。');
           setSubscribingPush(false);
           return;
         }
@@ -345,7 +348,7 @@ export const Home: React.FC<HomeProps> = ({ showSettings, setShowSettings }) => 
       }
     } catch (err: any) {
       console.error('Error toggling push subscription:', err);
-      alert('操作失败: ' + err.message);
+      (window as any).showCustomAlert('操作失败', err.message);
     } finally {
       setSubscribingPush(false);
     }
@@ -716,7 +719,14 @@ export const Home: React.FC<HomeProps> = ({ showSettings, setShowSettings }) => 
 
       if (distance <= 0) {
         if (latestReview.status === 'agreed') {
-          setCountdown({ days: 0, hours: 0, mins: 0, secs: 0, isNow: true });
+          const scheduledDate = new Date(latestReview.scheduled_date);
+          const nowDate = new Date();
+          const isSameDay = 
+            nowDate.getFullYear() === scheduledDate.getFullYear() &&
+            nowDate.getMonth() === scheduledDate.getMonth() &&
+            nowDate.getDate() === scheduledDate.getDate();
+          
+          setCountdown({ days: 0, hours: 0, mins: 0, secs: 0, isNow: isSameDay });
         } else {
           setCountdown({ days: 0, hours: 0, mins: 0, secs: 0, isNow: false });
         }
@@ -804,6 +814,25 @@ export const Home: React.FC<HomeProps> = ({ showSettings, setShowSettings }) => 
       console.error('Error fetching latest review on Home:', err);
     }
   };
+
+  // Trigger proposal modal if partner proposed a time and it's negotiating
+  useEffect(() => {
+    if (latestReview && currentUser) {
+      const isNegotiatingFromPartner = 
+        latestReview.status === 'negotiating' && 
+        latestReview.last_proposer_id !== currentUser.id;
+      if (isNegotiatingFromPartner) {
+        const isDismissed = sessionStorage.getItem(`dismissed_proposal_${latestReview.id}`);
+        if (!isDismissed) {
+          setShowProposalModal(true);
+        }
+      } else {
+        setShowProposalModal(false);
+      }
+    } else {
+      setShowProposalModal(false);
+    }
+  }, [latestReview, currentUser]);
 
   const formatProposedDateTime = (dateStr: string) => {
     if (!dateStr) return '';
@@ -967,7 +996,7 @@ export const Home: React.FC<HomeProps> = ({ showSettings, setShowSettings }) => 
 
       setNewAvatarUrl(publicUrl);
     } catch (err: any) {
-      alert('上传头像失败: ' + err.message);
+      (window as any).showCustomAlert('上传失败', '上传头像失败: ' + err.message);
     } finally {
       setUploadingAvatar(false);
     }
@@ -1006,16 +1035,20 @@ export const Home: React.FC<HomeProps> = ({ showSettings, setShowSettings }) => 
       setShowSettings(false);
       fetchData();
     } catch (err: any) {
-      alert('更新设置失败: ' + err.message);
+      (window as any).showCustomAlert('更新设置失败', err.message);
     } finally {
       setUpdating(false);
     }
   };
 
   const handleLogout = async () => {
-    if (window.confirm('确定要退出当前私密空间吗？')) {
-      await supabase.auth.signOut();
-    }
+    (window as any).showCustomConfirm(
+      '退出登录 🚪',
+      '确定要退出当前私密空间吗？',
+      async () => {
+        await supabase.auth.signOut();
+      }
+    );
   };
 
   const handleChangePassword = async () => {
@@ -1290,16 +1323,9 @@ export const Home: React.FC<HomeProps> = ({ showSettings, setShowSettings }) => 
 
           <div className="flex items-center space-x-[-20px] relative z-10">
             {/* Me avatar */}
-            <Link 
-              to="/wiki?tab=me" 
-              className="relative group/avatar cursor-pointer block hover:scale-105 transition-all duration-300"
-              title="点击编辑我的百科"
+            <div 
+              className="relative group/avatar block hover:scale-105 transition-all duration-300"
             >
-              {/* My preferences edit indicator badge */}
-              <div className="absolute -top-3 -left-2 bg-gradient-to-r from-rose-400 to-pink-500 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-full shadow-md z-40 border border-white/80 animate-pulse pointer-events-none select-none">
-                <span>📝 我的档案</span>
-              </div>
-
               {/* Speech Bubble */}
               <div className="absolute -top-11 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-xs border border-rose-100 text-[10px] font-extrabold text-rose-600 px-2.5 py-1 rounded-full shadow-md opacity-0 group-hover:opacity-100 group-hover:-translate-y-1.5 transition-all duration-500 select-none whitespace-nowrap pointer-events-none z-30 animate-bubble-float">
                 😘 想你了
@@ -1318,7 +1344,7 @@ export const Home: React.FC<HomeProps> = ({ showSettings, setShowSettings }) => 
                   {myProfile?.nickname || '我'}
                 </span>
               </div>
-            </Link>
+            </div>
 
             {/* Central heartbeat glowing heart */}
             <div className="relative z-20 flex items-center justify-center">
@@ -1341,9 +1367,9 @@ export const Home: React.FC<HomeProps> = ({ showSettings, setShowSettings }) => 
 
             {/* Partner avatar */}
             <Link 
-              to="/wiki?tab=partner" 
+              to="/wiki" 
               className="relative group/avatar cursor-pointer block hover:scale-105 transition-all duration-300"
-              title="点击查看Ta的百科"
+              title="点击查看伴侣百科"
             >
               {/* Animated Bouncing Wiki entry indicator badge */}
               <div className="absolute -top-3 -right-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-full shadow-md z-40 border border-white/80 animate-bounce pointer-events-none select-none flex items-center space-x-0.5">
@@ -1931,6 +1957,50 @@ export const Home: React.FC<HomeProps> = ({ showSettings, setShowSettings }) => 
                 </div>
               </div>
 
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 伴侣发起约定日协商时间弹出卡片 */}
+      {showProposalModal && latestReview && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-[1000] flex items-center justify-center p-4">
+          <div className="glass-panel max-w-sm w-full p-6 rounded-3xl border border-rose-100/50 shadow-2xl space-y-4 bg-white/95 relative animate-scale-up text-center">
+            <div className="w-16 h-16 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mx-auto animate-bounce">
+              <Calendar size={28} className="text-rose-500" />
+            </div>
+            
+            <div className="space-y-1.5">
+              <h3 className="text-sm font-black text-rose-800">💞 伴侣发起了约定日邀约！</h3>
+              <p className="text-[10px] text-rose-600/80 leading-relaxed font-medium">
+                伴侣 <strong>{profiles.find(p => p.id === latestReview.last_proposer_id)?.nickname || 'Ta'}</strong> 提议了下次约定的时间：
+              </p>
+              <div className="bg-rose-50 border border-rose-100 rounded-2xl py-2.5 px-4 font-bold text-rose-800 text-xs inline-block shadow-inner mt-1">
+                {formatProposedDateTime(latestReview.proposed_date)}
+              </div>
+            </div>
+
+            <div className="flex space-x-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowProposalModal(false);
+                  sessionStorage.setItem(`dismissed_proposal_${latestReview.id}`, 'true');
+                }}
+                className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold rounded-2xl transition active:scale-95 text-xs"
+              >
+                暂时忽略
+              </button>
+              <Link
+                to="/review"
+                onClick={() => {
+                  setShowProposalModal(false);
+                  sessionStorage.setItem(`dismissed_proposal_${latestReview.id}`, 'true');
+                }}
+                className="flex-1 bg-rose-500 hover:bg-rose-600 text-white font-bold py-2.5 rounded-2xl transition active:scale-95 text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-rose-200"
+              >
+                <span>去表态 ➔</span>
+              </Link>
             </div>
           </div>
         </div>

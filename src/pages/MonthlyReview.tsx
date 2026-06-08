@@ -5,6 +5,7 @@ import {
   Plus, Trash2, X, Sparkles, Smile 
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { TeaRoom } from '../components/TeaRoom';
 
 // Calendar Date Picker Helpers
 const getDaysInMonth = (year: number, month: number) => {
@@ -109,6 +110,16 @@ export const MonthlyReview: React.FC = () => {
   // History logs states
   const [selectedHistoryReview, setSelectedHistoryReview] = useState<any | null>(null);
   const [selectedHistoryLogs, setSelectedHistoryLogs] = useState<any[]>([]);
+
+  // Dispatch active tea room status to app level (to hide bottom nav bar)
+  useEffect(() => {
+    const event = new CustomEvent('tea-room-status', { detail: inTeaRoom });
+    window.dispatchEvent(event);
+    return () => {
+      window.dispatchEvent(new CustomEvent('tea-room-status', { detail: false }));
+    };
+  }, [inTeaRoom]);
+
 
   // Set default proposal date input to tomorrow at 20:00
   useEffect(() => {
@@ -489,12 +500,20 @@ export const MonthlyReview: React.FC = () => {
     if (data) {
       setCurrentReview(data);
       const agreed = data.status === 'agreed';
-      const scheduledTime = new Date(data.scheduled_date).getTime();
-      const now = new Date().getTime();
-      const hasTimePassed = now >= scheduledTime;
+      const scheduledDate = new Date(data.scheduled_date);
+      const scheduledTime = scheduledDate.getTime();
+      const now = new Date();
+      const nowTime = now.getTime();
+      const hasTimePassed = nowTime >= scheduledTime;
       const isCompleted = data.user_a_submitted && data.user_b_submitted;
 
-      setIsRoomOpen(((agreed && hasTimePassed && !isCompleted) || forceUnlock));
+      // Check if it is the same calendar day
+      const isSameDay = 
+        now.getFullYear() === scheduledDate.getFullYear() &&
+        now.getMonth() === scheduledDate.getMonth() &&
+        now.getDate() === scheduledDate.getDate();
+
+      setIsRoomOpen(((agreed && hasTimePassed && isSameDay && !isCompleted) || forceUnlock));
     } else {
       setCurrentReview(null);
       setIsRoomOpen(forceUnlock);
@@ -514,7 +533,7 @@ export const MonthlyReview: React.FC = () => {
     try {
       const parsedDate = new Date(proposedDateInput);
       if (isNaN(parsedDate.getTime())) {
-        alert('请输入有效的日期与时间');
+        (window as any).showCustomAlert('提示', '请输入有效的日期与时间');
         return;
       }
 
@@ -578,7 +597,7 @@ export const MonthlyReview: React.FC = () => {
         }).catch(err => console.error('Error invoking send-push:', err));
       }
     } catch (err: any) {
-      alert('发送约定邀请失败: ' + err.message);
+      (window as any).showCustomAlert('发送失败', '发送约定邀请失败: ' + err.message);
     }
   };
 
@@ -627,22 +646,27 @@ export const MonthlyReview: React.FC = () => {
         }).catch(err => console.error('Error invoking send-push:', err));
       }
     } catch (err: any) {
-      alert('同意约定失败: ' + err.message);
+      (window as any).showCustomAlert('同意失败', '同意约定失败: ' + err.message);
     }
   };
 
   const handleDeleteLog = async (id: string) => {
-    if (!window.confirm('确定要删除这条手记吗？')) return;
-    try {
-      const { error } = await supabase
-        .from('communication_logs')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
-      fetchLogs();
-    } catch (e: any) {
-      alert('删除失败: ' + e.message);
-    }
+    (window as any).showCustomConfirm(
+      '确认删除 🗑️',
+      '确定要删除这条手记吗？此操作无法撤销。',
+      async () => {
+        try {
+          const { error } = await supabase
+            .from('communication_logs')
+            .delete()
+            .eq('id', id);
+          if (error) throw error;
+          fetchLogs();
+        } catch (e: any) {
+          (window as any).showCustomAlert('删除失败', '删除失败: ' + e.message);
+        }
+      }
+    );
   };
 
   const handleAddLog = async (e: React.FormEvent) => {
@@ -677,7 +701,7 @@ export const MonthlyReview: React.FC = () => {
 
       fetchLogs();
     } catch (e: any) {
-      alert('记录失败: ' + e.message);
+      (window as any).showCustomAlert('记录失败', '记录保存失败: ' + e.message);
     } finally {
       setIsSubmittingLog(false);
     }
@@ -727,7 +751,7 @@ export const MonthlyReview: React.FC = () => {
       fetchHistory();
       fetchLogs();
     } catch (e: any) {
-      alert('保存约定失败: ' + e.message);
+      (window as any).showCustomAlert('保存失败', '保存约定失败: ' + e.message);
     } finally {
       setIsSubmittingConsensus(false);
     }
@@ -932,185 +956,218 @@ export const MonthlyReview: React.FC = () => {
         )}
 
         {/* Tab 2: Scheduling (Plan) */}
-        {activeTab === 'plan' && (
-          <div className={`space-y-6 max-w-sm mx-auto relative ${showDatePicker ? 'z-50' : ''}`}>
-            
-            {/* Negotiation Card */}
-            {!currentReview || isInitiatingNew || (currentReview.user_a_submitted && currentReview.user_b_submitted) ? (
-              <div className="glass-panel rounded-3xl p-6 text-center space-y-4 custom-shadow bg-white/70">
-                <div className="w-16 h-16 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mx-auto animate-float-left">
-                  <Calendar size={28} />
-                </div>
-                <h2 className="text-sm font-extrabold text-rose-800">🗓️ 商定约定时间</h2>
-                <p className="text-[10px] text-rose-600/80 leading-relaxed font-medium">
-                  请选择一个彼此都舒服的时间，向 Ta 发起下一次约定邀约吧！
-                </p>
-                <form onSubmit={handleProposeDate} className="space-y-3 pt-2">
-                  {renderCustomDateTimePicker('border-rose-100', 'focus:ring-rose-400')}
-                  <div className="flex space-x-2">
-                    {isInitiatingNew && (
-                      <button
-                        type="button"
-                        onClick={() => setIsInitiatingNew(false)}
-                        className="flex-1 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold rounded-xl transition text-xs"
-                      >
-                        返回
-                      </button>
-                    )}
-                    <button
-                      type="submit"
-                      className="flex-1 bg-rose-500 hover:bg-rose-600 text-white font-semibold py-2.5 px-4 rounded-xl transition active:scale-95 text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-rose-200"
-                    >
-                      <span>🚀 发起邀约</span>
-                    </button>
-                  </div>
-                </form>
-              </div>
-            ) : currentReview.status === 'negotiating' ? (
-              <div className="glass-panel rounded-3xl p-6 text-center space-y-4 custom-shadow bg-white/70">
-                {currentReview.last_proposer_id === currentUser?.id ? (
-                  // Waiting for partner
-                  <>
-                    <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto animate-pulse">
-                      <Clock size={28} />
-                    </div>
-                    <h2 className="text-sm font-extrabold text-amber-800">⏳ 等待伴侣答复中</h2>
-                    <div className="text-[10px] text-amber-700/80 leading-relaxed font-medium">
-                      你已发送邀约，提议在以下时间见面：
-                      <span className="block mt-1 bg-amber-100/50 text-amber-800 py-1.5 px-3 rounded-lg font-bold">
-                        {formatProposedDateTime(currentReview.proposed_date)}
-                      </span>
-                      正在等候 Ta 的答复。
-                    </div>
-                    
-                    {!isChangingDate ? (
-                      <button
-                        onClick={() => setIsChangingDate(true)}
-                        className="w-full bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-semibold py-2.5 px-4 rounded-xl transition active:scale-95 text-xs flex items-center justify-center space-x-1.5"
-                      >
-                        <span>✏️ 修改提议时间</span>
-                      </button>
-                    ) : (
-                      <form onSubmit={handleProposeDate} className="space-y-3 pt-2">
-                        {renderCustomDateTimePicker('border-amber-100/70', 'focus:ring-amber-400')}
-                        <div className="flex space-x-2">
-                          <button
-                            type="button"
-                            onClick={() => setIsChangingDate(false)}
-                            className="flex-1 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold rounded-xl transition text-xs"
-                          >
-                            取消
-                          </button>
-                          <button
-                            type="submit"
-                            className="flex-1 py-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-xl transition text-xs shadow-md shadow-amber-200"
-                          >
-                            提交修改
-                          </button>
-                        </div>
-                      </form>
-                    )}
-                  </>
-                ) : (
-                  // Received proposal
-                  <>
-                    <div className="w-16 h-16 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mx-auto animate-bounce">
-                      <Unlock size={28} />
-                    </div>
-                    <h2 className="text-sm font-extrabold text-rose-800">💞 收到伴侣的邀约！</h2>
-                    <div className="text-[10px] text-rose-700/80 leading-relaxed font-medium">
-                      伴侣 **{getProfileNickname(currentReview.last_proposer_id)}** 提议了约定时间：
-                      <span className="block mt-1 bg-rose-50 text-rose-800 py-1.5 px-3 rounded-lg font-bold border border-rose-100">
-                        {formatProposedDateTime(currentReview.proposed_date)}
-                      </span>
-                    </div>
+        {activeTab === 'plan' && (() => {
+          const scheduledDate = currentReview ? new Date(currentReview.scheduled_date) : null;
+          const isPastDay = scheduledDate ? (
+            (() => {
+              const now = new Date();
+              const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+              const sched = new Date(scheduledDate.getFullYear(), scheduledDate.getMonth(), scheduledDate.getDate());
+              return today.getTime() > sched.getTime();
+            })()
+          ) : false;
 
-                    {!isChangingDate ? (
-                      <div className="space-y-2 pt-2">
+          return (
+            <div className={`space-y-6 max-w-sm mx-auto relative ${showDatePicker ? 'z-50' : ''}`}>
+              
+              {/* Negotiation Card */}
+              {!currentReview || isInitiatingNew || (currentReview.user_a_submitted && currentReview.user_b_submitted) ? (
+                <div className="glass-panel rounded-3xl p-6 text-center space-y-4 custom-shadow bg-white/70">
+                  <div className="w-16 h-16 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mx-auto animate-float-left">
+                    <Calendar size={28} />
+                  </div>
+                  <h2 className="text-sm font-extrabold text-rose-800">🗓️ 商定约定时间</h2>
+                  <p className="text-[10px] text-rose-600/80 leading-relaxed font-medium">
+                    请选择一个彼此都舒服的时间，向 Ta 发起下一次约定邀约吧！
+                  </p>
+                  <form onSubmit={handleProposeDate} className="space-y-3 pt-2">
+                    {renderCustomDateTimePicker('border-rose-100', 'focus:ring-rose-400')}
+                    <div className="flex space-x-2">
+                      {isInitiatingNew && (
                         <button
-                          onClick={handleAcceptProposal}
-                          className="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-2.5 px-4 rounded-xl transition active:scale-95 text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-rose-200"
+                          type="button"
+                          onClick={() => setIsInitiatingNew(false)}
+                          className="flex-1 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold rounded-xl transition text-xs"
                         >
-                          <span>👍 欣然应邀</span>
+                          返回
                         </button>
+                      )}
+                      <button
+                        type="submit"
+                        className="flex-1 bg-rose-500 hover:bg-rose-600 text-white font-semibold py-2.5 px-4 rounded-xl transition active:scale-95 text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-rose-200"
+                      >
+                        <span>🚀 发起邀约</span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              ) : currentReview.status === 'negotiating' ? (
+                <div className="glass-panel rounded-3xl p-6 text-center space-y-4 custom-shadow bg-white/70">
+                  {currentReview.last_proposer_id === currentUser?.id ? (
+                    // Waiting for partner
+                    <>
+                      <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto animate-pulse">
+                        <Clock size={28} />
+                      </div>
+                      <h2 className="text-sm font-extrabold text-amber-800">⏳ 等待伴侣答复中</h2>
+                      <div className="text-[10px] text-amber-700/80 leading-relaxed font-medium">
+                        你已发送邀约，提议在以下时间见面：
+                        <span className="block mt-1 bg-amber-100/50 text-amber-800 py-1.5 px-3 rounded-lg font-bold">
+                          {formatProposedDateTime(currentReview.proposed_date)}
+                        </span>
+                        正在等候 Ta 的答复。
+                      </div>
+                      
+                      {!isChangingDate ? (
                         <button
                           onClick={() => setIsChangingDate(true)}
-                          className="w-full bg-white border border-rose-200 hover:bg-rose-50/50 text-rose-600 font-bold py-2.5 px-4 rounded-xl transition active:scale-95 text-xs"
+                          className="w-full bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-semibold py-2.5 px-4 rounded-xl transition active:scale-95 text-xs flex items-center justify-center space-x-1.5"
                         >
-                          <span>⏰ 换个时间</span>
+                          <span>✏️ 修改提议时间</span>
                         </button>
+                      ) : (
+                        <form onSubmit={handleProposeDate} className="space-y-3 pt-2">
+                          {renderCustomDateTimePicker('border-amber-100/70', 'focus:ring-amber-400')}
+                          <div className="flex space-x-2">
+                            <button
+                              type="button"
+                              onClick={() => setIsChangingDate(false)}
+                              className="flex-1 py-2 bg-gray-100 hover:bg-gray-200 text-gray-650 font-semibold rounded-xl transition text-xs"
+                            >
+                              取消
+                            </button>
+                            <button
+                              type="submit"
+                              className="flex-1 py-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-xl transition text-xs shadow-md shadow-amber-200"
+                            >
+                              提交修改
+                            </button>
+                          </div>
+                        </form>
+                      )}
+                    </>
+                  ) : (
+                    // Received proposal
+                    <>
+                      <div className="w-16 h-16 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mx-auto animate-bounce">
+                        <Unlock size={28} />
                       </div>
-                    ) : (
-                      <form onSubmit={handleProposeDate} className="space-y-3 pt-2">
-                        {renderCustomDateTimePicker('border-rose-100', 'focus:ring-rose-400')}
-                        <div className="flex space-x-2">
+                      <h2 className="text-sm font-extrabold text-rose-800">💞 收到伴侣的邀约！</h2>
+                      <div className="text-[10px] text-rose-700/80 leading-relaxed font-medium">
+                        伴侣 **{getProfileNickname(currentReview.last_proposer_id)}** 提议了约定时间：
+                        <span className="block mt-1 bg-rose-50 text-rose-800 py-1.5 px-3 rounded-lg font-bold border border-rose-100">
+                          {formatProposedDateTime(currentReview.proposed_date)}
+                        </span>
+                      </div>
+
+                      {!isChangingDate ? (
+                        <div className="space-y-2 pt-2">
                           <button
-                            type="button"
-                            onClick={() => setIsChangingDate(false)}
-                            className="flex-1 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 font-semibold rounded-xl transition text-xs"
+                            onClick={handleAcceptProposal}
+                            className="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-2.5 px-4 rounded-xl transition active:scale-95 text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-rose-200"
                           >
-                            取消
+                            <span>👍 欣然应邀</span>
                           </button>
                           <button
-                            type="submit"
-                            className="flex-1 py-2 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-xl transition text-xs shadow-md shadow-rose-200"
+                            onClick={() => setIsChangingDate(true)}
+                            className="w-full bg-white border border-rose-200 hover:bg-rose-50/50 text-rose-600 font-bold py-2.5 px-4 rounded-xl transition active:scale-95 text-xs"
                           >
-                            提交反建议
+                            <span>⏰ 换个时间</span>
                           </button>
                         </div>
-                      </form>
-                    )}
-                  </>
-                )}
-              </div>
-            ) : (
-              // Status === 'agreed' (locked countdown / active screen)
-              <div className="glass-panel rounded-3xl p-6 text-center space-y-4 custom-shadow bg-white/70">
-                
-                {isRoomOpen ? (
-                  // Room Active View
-                  <div className="space-y-4">
-                    <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto animate-bounce">
-                      <Unlock size={28} className="text-rose-500" />
+                      ) : (
+                        <form onSubmit={handleProposeDate} className="space-y-3 pt-2">
+                          {renderCustomDateTimePicker('border-rose-100', 'focus:ring-rose-400')}
+                          <div className="flex space-x-2">
+                            <button
+                              type="button"
+                              onClick={() => setIsChangingDate(false)}
+                              className="flex-1 py-2 bg-gray-100 hover:bg-gray-200 text-gray-650 font-semibold rounded-xl transition text-xs"
+                            >
+                              取消
+                            </button>
+                            <button
+                              type="submit"
+                              className="flex-1 py-2 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-xl transition text-xs shadow-md shadow-rose-200"
+                            >
+                              提交反建议
+                            </button>
+                          </div>
+                        </form>
+                      )}
+                    </>
+                  )}
+                </div>
+              ) : (
+                // Status === 'agreed' (locked countdown / active screen)
+                <div className="glass-panel rounded-3xl p-6 text-center space-y-4 custom-shadow bg-white/70">
+                  
+                  {isRoomOpen ? (
+                    // Room Active View
+                    <div className="space-y-4">
+                      <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto animate-bounce">
+                        <Unlock size={28} className="text-rose-500" />
+                      </div>
+                      <h2 className="text-sm font-extrabold text-rose-800">🛋️ 双人沟通时刻到啦！</h2>
+                      <p className="text-[10px] text-rose-600/80 leading-relaxed font-medium">
+                        这是属于你们的静心沟通时间。去一个安静放松的地方，抱着包容的心，点击下方开启茶室吧。
+                      </p>
+                      <button
+                        onClick={() => setInTeaRoom(true)}
+                        className="w-full bg-rose-500 hover:bg-rose-655 text-white font-bold py-2.5 px-4 rounded-xl transition active:scale-95 text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-rose-200 animate-timer-beat"
+                      >
+                        <span>🛋️ 开启双人沟通茶室</span>
+                      </button>
                     </div>
-                    <h2 className="text-sm font-extrabold text-rose-800">🛋️ 双人沟通时刻到啦！</h2>
-                    <p className="text-[10px] text-rose-600/80 leading-relaxed font-medium">
-                      这是属于你们的静心沟通时间。去一个安静放松的地方，抱着抱容的心，点击下方开启茶室吧。
-                    </p>
-                    <button
-                      onClick={() => setInTeaRoom(true)}
-                      className="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-2.5 px-4 rounded-xl transition active:scale-95 text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-rose-200 animate-timer-beat"
-                    >
-                      <span>🛋️ 开启双人沟通茶室</span>
-                    </button>
-                  </div>
-                ) : (
-                  // Countdown View
-                  <>
-                    <div className="w-16 h-16 bg-rose-500/10 text-rose-500 rounded-full flex items-center justify-center mx-auto animate-glow-breath">
-                      <Lock size={28} />
+                  ) : isPastDay ? (
+                    // Expired View
+                    <div className="space-y-4">
+                      <div className="w-16 h-16 bg-rose-50 text-rose-450 rounded-full flex items-center justify-center mx-auto">
+                        <Lock size={28} />
+                      </div>
+                      <h2 className="text-sm font-extrabold text-rose-800">⌛ 上期约定已逾期</h2>
+                      <p className="text-[10px] text-rose-600/80 leading-relaxed font-medium font-sans">
+                        原定于以下时间见面的约定已过截止日期：
+                        <span className="block mt-1 bg-rose-50/50 text-rose-700 py-1.5 px-3 rounded-lg font-bold border border-rose-100">
+                          {formatProposedDateTime(currentReview.scheduled_date)}
+                        </span>
+                        如果没能如期开启沟通，可以重新发起一个新的约定哦。
+                      </p>
+                      <button
+                        onClick={() => setIsInitiatingNew(true)}
+                        className="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-2.5 px-4 rounded-xl transition active:scale-95 text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-rose-200"
+                      >
+                        <span>⏰ 重新商定时间</span>
+                      </button>
                     </div>
-                    <h2 className="text-sm font-extrabold text-rose-800">🔒 约定达成，静候开启</h2>
-                    <div className="text-[10px] text-rose-600/80 leading-relaxed font-medium">
-                      约定已达成！约定于以下时间见面：
-                      <span className="block mt-1 bg-rose-50 text-rose-800 py-1.5 px-3 rounded-lg font-bold border border-rose-100">
-                        {formatProposedDateTime(currentReview.scheduled_date)}
-                      </span>
-                    </div>
-                    
-                    {/* Countdown display */}
-                    <div className="bg-gradient-to-r from-rose-50 to-pink-50 border border-rose-100 rounded-2xl py-3 px-4 text-center shadow-inner">
-                      <span className="text-[9px] text-rose-500 font-bold block mb-1">⏱️ 距离见面还有</span>
-                      <span className="text-xs font-black text-rose-600 tracking-wider font-mono">
-                        {countdownText || '正在计算...'}
-                      </span>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+                  ) : (
+                    // Countdown View
+                    <>
+                      <div className="w-16 h-16 bg-rose-500/10 text-rose-500 rounded-full flex items-center justify-center mx-auto animate-glow-breath">
+                        <Lock size={28} />
+                      </div>
+                      <h2 className="text-sm font-extrabold text-rose-800">🔒 约定达成，静候开启</h2>
+                      <div className="text-[10px] text-rose-600/80 leading-relaxed font-medium">
+                        约定已达成！约定于以下时间见面：
+                        <span className="block mt-1 bg-rose-50 text-rose-800 py-1.5 px-3 rounded-lg font-bold border border-rose-100">
+                          {formatProposedDateTime(currentReview.scheduled_date)}
+                        </span>
+                      </div>
+                      
+                      {/* Countdown display */}
+                      <div className="bg-gradient-to-r from-rose-50 to-pink-50 border border-rose-100 rounded-2xl py-3 px-4 text-center shadow-inner">
+                        <span className="text-[9px] text-rose-500 font-bold block mb-1">⏱️ 距离见面还有</span>
+                        <span className="text-xs font-black text-rose-600 tracking-wider font-mono">
+                          {countdownText || '正在计算...'}
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Tab 3: History Wall */}
         {activeTab === 'history' && (
@@ -1282,244 +1339,25 @@ export const MonthlyReview: React.FC = () => {
       {/* 全屏全沉浸模式: 双人沟通茶室 (Tea Room) */}
       {/* ================================================= */}
       {inTeaRoom && (
-        <div className="fixed inset-0 z-[150] bg-gradient-to-br from-[#fdf6f0] via-[#fee4e6] to-[#fceade] overflow-y-auto p-4 flex flex-col items-center justify-between pb-8 select-none">
-          
-          {/* Tea Room Header */}
-          <div className="w-full max-w-md flex justify-between items-center py-4 border-b border-rose-200/50">
-            <div className="flex items-center space-x-2">
-              <span className="text-xl">🛋️</span>
-              <div className="text-left">
-                <h2 className="text-xs font-black text-rose-900">约定沟通茶室</h2>
-                <span className="text-[8px] text-rose-600/70 block">放下杂念，倾听彼此的心声</span>
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                if (window.confirm('确定退出茶室吗？日常手记仍会保存，不会丢失数据。')) {
-                  setInTeaRoom(false);
-                  setTeaRoomStep(1);
-                }
-              }}
-              className="px-2.5 py-1 bg-white/50 border border-rose-200 hover:bg-rose-50 text-rose-700 rounded-full text-[9px] font-black transition active:scale-95 shadow-2xs"
-            >
-              退出茶室
-            </button>
-          </div>
-
-          {/* Tea Room Main Container */}
-          <div className="w-full max-w-md flex-1 py-6 flex flex-col justify-start">
-            
-            {/* Steps Guide Indicator */}
-            <div className="flex justify-between items-center mb-6 px-4">
-              {[
-                { step: 1, label: '🌱 聆听自省' },
-                { step: 2, label: '💔 探讨议题' },
-                { step: 3, label: '✍️ 达成共识' }
-              ].map((s) => (
-                <div key={s.step} className="flex flex-col items-center space-y-1 flex-1 relative">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black transition-all ${
-                    teaRoomStep >= s.step ? 'bg-rose-500 text-white shadow-md' : 'bg-rose-200/50 text-rose-700/60'
-                  }`}>
-                    {s.step}
-                  </div>
-                  <span className={`text-[8px] font-black transition-all ${
-                    teaRoomStep === s.step ? 'text-rose-800 scale-105' : 'text-rose-700/50'
-                  }`}>
-                    {s.label}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            {/* Step 1: Reflections */}
-            {teaRoomStep === 1 && (
-              <div className="space-y-4 flex-1 flex flex-col justify-between">
-                <div className="space-y-4">
-                  <div className="bg-white/50 border border-emerald-100 rounded-2xl p-4 text-center space-y-1.5 shadow-inner">
-                    <span className="text-xl animate-bounce block">🌱</span>
-                    <h3 className="text-xs font-black text-emerald-800">第一阶段：聆听自省</h3>
-                    <p className="text-[9px] text-emerald-700/80 leading-relaxed font-medium">
-                      以真诚的自省开场，倾听彼此在相处中反思出的不足以及改进的具体行动。
-                    </p>
-                  </div>
-
-                  {communicationLogs.filter(l => l.category === 'reflection').length === 0 ? (
-                    <div className="glass-panel border border-dashed border-emerald-150 rounded-2xl p-8 text-center text-[10px] font-black text-emerald-800 bg-white/40">
-                      本期暂无自省记录。可以直接进行下一步。
-                    </div>
-                  ) : (
-                    <div className="space-y-3 max-h-[48vh] overflow-y-auto pr-1">
-                      {communicationLogs.filter(l => l.category === 'reflection').map((log) => {
-                        const isMine = log.user_id === currentUser?.id;
-                        const writerProfile = profiles.find(p => p.id === log.user_id);
-                        const writerNickname = isMine ? '我' : (writerProfile?.nickname || '伴侣');
-                        
-                        return (
-                          <div key={log.id} className="glass-panel border border-emerald-250 rounded-2xl p-4 space-y-2.5 bg-white/60 font-love-letter text-left shadow-2xs">
-                            <div className="flex justify-between items-center text-[8px] font-black text-emerald-700/70 border-b border-emerald-100 pb-1.5">
-                              <span>🌱 {writerNickname} 的反思</span>
-                              <span>{new Date(log.created_at).toLocaleDateString()}</span>
-                            </div>
-                            <p className="text-xs text-emerald-950 leading-relaxed whitespace-pre-wrap font-medium">{log.content}</p>
-                            {log.reflection_action && (
-                              <div className="bg-emerald-50/50 border border-emerald-100/50 rounded-xl p-2.5 text-[9px] mt-2 space-y-1 shadow-inner">
-                                <span className="font-extrabold text-emerald-850 block">💡 改进的具体行动：</span>
-                                <p className="text-emerald-700 font-medium whitespace-pre-wrap leading-relaxed">{log.reflection_action}</p>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  onClick={() => setTeaRoomStep(2)}
-                  className="w-full py-3 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-2xl text-xs transition active:scale-95 shadow-md shadow-rose-200/50"
-                >
-                  下一步：探讨议题与心结 (共 {communicationLogs.filter(l => l.category !== 'reflection').length} 条) ➔
-                </button>
-              </div>
-            )}
-
-            {/* Step 2: Unhappy / Agenda */}
-            {teaRoomStep === 2 && (
-              <div className="space-y-4 flex-1 flex flex-col justify-between">
-                <div className="space-y-4">
-                  <div className="bg-white/50 border border-rose-100 rounded-2xl p-4 text-center space-y-1.5 shadow-inner">
-                    <span className="text-xl animate-bounce block">💔</span>
-                    <h3 className="text-xs font-black text-rose-800">第二阶段：探讨议题与心结</h3>
-                    <p className="text-[9px] text-rose-700/80 leading-relaxed font-medium">
-                      平时隐藏的手记均已解锁。面对面沟通这些卡片，讨论并释怀后，将其标记为“达成一致”。
-                    </p>
-                  </div>
-
-                  {communicationLogs.filter(l => l.category !== 'reflection').length === 0 ? (
-                    <div className="glass-panel border border-dashed border-rose-150 rounded-2xl p-8 text-center text-[10px] font-black text-rose-800 bg-white/40">
-                      本期暂无摩擦心结与商议议题记录。可以直接进行下一步。
-                    </div>
-                  ) : (
-                    <div className="space-y-3 max-h-[48vh] overflow-y-auto pr-1">
-                      {communicationLogs.filter(l => l.category !== 'reflection').map((log) => {
-                        const isMine = log.user_id === currentUser?.id;
-                        const writerProfile = profiles.find(p => p.id === log.user_id);
-                        const writerNickname = isMine ? '我' : (writerProfile?.nickname || '伴侣');
-                        const isResolved = resolvedLogIds.includes(log.id);
-
-                        let cardBorder = log.category === 'unhappy' ? 'border-rose-200' : 'border-indigo-200';
-                        let logTypeLabel = log.category === 'unhappy' ? '💔 委屈' : '📋 议题';
-                        let badgeColor = log.category === 'unhappy' ? 'bg-rose-100 text-rose-700' : 'bg-indigo-100 text-indigo-700';
-
-                        return (
-                          <div
-                            key={log.id}
-                            className={`glass-panel border rounded-2xl p-4 space-y-2 bg-white/60 transition duration-300 relative text-left shadow-2xs ${cardBorder} ${
-                              isResolved ? 'opacity-40 grayscale-[40%] line-through scale-[0.98]' : ''
-                            }`}
-                          >
-                            <div className="flex justify-between items-center text-[8px] font-black border-b border-black/5 pb-1.5">
-                              <div className="flex items-center space-x-1.5">
-                                <span className={`px-1.5 py-0.5 rounded-full ${badgeColor} text-[7px]`}>{logTypeLabel}</span>
-                                <span className="text-rose-800">{writerNickname} 的记录</span>
-                              </div>
-                              <button
-                                onClick={() => {
-                                  if (isResolved) {
-                                    setResolvedLogIds(resolvedLogIds.filter(id => id !== log.id));
-                                  } else {
-                                    setResolvedLogIds([...resolvedLogIds, log.id]);
-                                    confetti({
-                                      particleCount: 15,
-                                      spread: 30,
-                                      origin: { y: 0.8 },
-                                      colors: ['#ff85a1', '#ffccd5'],
-                                    });
-                                  }
-                                }}
-                                className={`px-2 py-0.5 rounded-full text-[8px] font-black transition ${
-                                  isResolved ? 'bg-green-500 text-white' : 'bg-rose-50 text-rose-600 border border-rose-200'
-                                }`}
-                              >
-                                {isResolved ? '✓ 已达成' : '标记达成'}
-                              </button>
-                            </div>
-                            <p className="text-xs text-rose-950 leading-relaxed whitespace-pre-wrap font-medium">{log.content}</p>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex space-x-3">
-                  <button
-                    onClick={() => setTeaRoomStep(1)}
-                    className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-2xl text-xs transition"
-                  >
-                    返回第一步
-                  </button>
-                  <button
-                    onClick={() => setTeaRoomStep(3)}
-                    className="flex-2 py-3 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-2xl text-xs transition active:scale-95 shadow-md shadow-rose-200/50"
-                  >
-                    下一步：落笔新约定 ➔
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Step 3: Shared Consensus */}
-            {teaRoomStep === 3 && (
-              <div className="space-y-4 flex-1 flex flex-col justify-between">
-                <div className="space-y-4">
-                  <div className="bg-white/50 border border-amber-100 rounded-2xl p-4 text-center space-y-1.5 shadow-inner">
-                    <span className="text-xl animate-bounce block">✍️</span>
-                    <h3 className="text-xs font-black text-amber-800">第三阶段：共同敲定新共识</h3>
-                    <p className="text-[9px] text-amber-700/80 leading-relaxed font-medium">
-                      沟通完毕！写下属于你们两人的“新共识与约定”，确认后它将被永久锁入时光墙中。
-                    </p>
-                  </div>
-
-                  <div className="space-y-1 text-left">
-                    <span className="text-[10px] font-black text-rose-900 block pl-1">📝 我们的约定共识：</span>
-                    <textarea
-                      value={consensusText}
-                      onChange={(e) => setConsensusText(e.target.value)}
-                      placeholder="例如：
-1. 相处中有误会先给对方一个拥抱，不以冷战或愤怒文字收尾。
-2. 以后每个周末两人分工做一次大扫除，不再为家务推脱。
-3. 发生不开心时，说出“我感到不舒服”而不是埋怨对方做错了什么。"
-                      required
-                      className="w-full bg-white/70 border border-rose-100 rounded-2xl p-4 text-xs font-medium text-rose-955 focus:outline-none focus:ring-2 focus:ring-rose-450 focus:bg-white shadow-inner h-[220px]"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex space-x-3">
-                  <button
-                    onClick={() => setTeaRoomStep(2)}
-                    className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-2xl text-xs transition animate-active"
-                  >
-                    返回上一步
-                  </button>
-                  <button
-                    onClick={handleFinishReview}
-                    disabled={isSubmittingConsensus || !consensusText.trim()}
-                    className="flex-2 py-3 bg-rose-500 hover:bg-rose-600 disabled:bg-rose-300 text-white font-bold rounded-2xl text-xs transition active:scale-95 shadow-md shadow-rose-200/50 flex items-center justify-center space-x-2"
-                  >
-                    {isSubmittingConsensus ? (
-                      <span>正在锁入时光墙...</span>
-                    ) : (
-                      <span>🤝 确认并归档约定</span>
-                    )}
-                  </button>
-                </div>
-              </div>
-            )}
-
-          </div>
-        </div>
+        <TeaRoom
+          currentUser={currentUser}
+          profiles={profiles}
+          communicationLogs={communicationLogs}
+          teaRoomStep={teaRoomStep}
+          setTeaRoomStep={setTeaRoomStep}
+          resolvedLogIds={resolvedLogIds}
+          setResolvedLogIds={setResolvedLogIds}
+          consensusText={consensusText}
+          setConsensusText={setConsensusText}
+          isSubmittingConsensus={isSubmittingConsensus}
+          onExit={() => {
+            (window as any).showCustomConfirm('退出茶室', '确定退出茶室吗？日常手记仍会保存，不会丢失数据。', () => {
+              setInTeaRoom(false);
+              setTeaRoomStep(1);
+            });
+          }}
+          onFinish={handleFinishReview}
+        />
       )}
 
       {/* ================================================= */}

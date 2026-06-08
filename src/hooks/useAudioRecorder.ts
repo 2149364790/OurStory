@@ -59,7 +59,7 @@ export const useAudioRecorder = () => {
 
     } catch (error) {
       console.error('Error starting audio recording:', error);
-      alert('麦克风授权失败或浏览器不支持录音。请检查权限设置。');
+      (window as any).showCustomAlert('授权失败', '麦克风授权失败或浏览器不支持录音。请检查权限设置。');
     }
   }, []);
 
