@@ -2,10 +2,90 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { 
   Calendar, Lock, Unlock, CheckCircle2, History, Clock, 
-  Plus, Trash2, X, Sparkles, Smile 
+  Plus, Trash2, X, Sparkles, Smile, Wrench, BookOpen, Scroll,
+  HeartCrack, Sprout, ClipboardList, Bookmark, Hourglass,
+  ThumbsUp, Coffee, Timer, PartyPopper, Lightbulb,
+  Heart, Send, Pencil, AlarmClock, EyeOff, Handshake, Megaphone,
+  ChevronRight
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { TeaRoom } from '../components/TeaRoom';
+
+// Beautiful custom animated SVG empty state illustration for logs
+const EmptyLogsIcon: React.FC<{ className?: string }> = ({ className = "w-16 h-16" }) => {
+  return (
+    <div className={`relative ${className} mx-auto flex items-center justify-center`}>
+      {/* Background soft pulse circle */}
+      <div className="absolute inset-0 bg-rose-200/30 rounded-full blur-lg animate-pulse" />
+      <svg
+        className="w-full h-full relative z-10 filter drop-shadow-[0_4px_8px_rgba(244,63,94,0.1)]"
+        viewBox="0 0 100 100"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <linearGradient id="notebookBg" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#ffffff" />
+            <stop offset="100%" stopColor="#fff1f2" />
+          </linearGradient>
+          <linearGradient id="pencilGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#fb7185" />
+            <stop offset="100%" stopColor="#e11d48" />
+          </linearGradient>
+          <linearGradient id="sparksGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#fca5a5" />
+            <stop offset="100%" stopColor="#fda4af" />
+          </linearGradient>
+        </defs>
+
+        {/* Notebook sheet of paper */}
+        <path
+          d="M25 15C25 12.2386 27.2386 10 30 10H75C77.7614 10 80 12.2386 80 15V85C80 87.7614 77.7614 90 75 90H30C27.2386 90 25 87.7614 25 85V15Z"
+          fill="url(#notebookBg)"
+          stroke="#ffe4e6"
+          strokeWidth="2"
+        />
+
+        {/* Bindings on the left of notebook */}
+        <circle cx="20" cy="22" r="3" fill="#fecdd3" />
+        <path d="M15 22H25" stroke="#fda4af" strokeWidth="2" strokeLinecap="round" />
+        
+        <circle cx="20" cy="38" r="3" fill="#fecdd3" />
+        <path d="M15 38H25" stroke="#fda4af" strokeWidth="2" strokeLinecap="round" />
+
+        <circle cx="20" cy="54" r="3" fill="#fecdd3" />
+        <path d="M15 54H25" stroke="#fda4af" strokeWidth="2" strokeLinecap="round" />
+
+        <circle cx="20" cy="70" r="3" fill="#fecdd3" />
+        <path d="M15 70H25" stroke="#fda4af" strokeWidth="2" strokeLinecap="round" />
+
+        {/* Lines on the paper */}
+        <line x1="35" y1="25" x2="70" y2="25" stroke="#fecdd3" strokeWidth="2" strokeLinecap="round" />
+        <line x1="35" y1="37" x2="65" y2="37" stroke="#fecdd3" strokeWidth="2" strokeLinecap="round" />
+        <line x1="35" y1="49" x2="70" y2="49" stroke="#fecdd3" strokeWidth="2" strokeLinecap="round" />
+        <line x1="35" y1="61" x2="60" y2="61" stroke="#fecdd3" strokeWidth="2" strokeLinecap="round" />
+        <line x1="35" y1="73" x2="65" y2="73" stroke="#fecdd3" strokeWidth="2" strokeLinecap="round" />
+
+        {/* Floating Pencil / Pen writing on the paper */}
+        <g className="animate-[bounce_2.5s_infinite_ease-in-out]" style={{ transformOrigin: 'center bottom' }}>
+          {/* Sparkles around writing tip */}
+          <path d="M72 45L74 41L78 43L74 45L72 49L70 45Z" fill="url(#sparksGrad)" opacity="0.8" />
+          
+          {/* Pen body */}
+          <rect x="58" y="24" width="8" height="35" rx="2" transform="rotate(-30 58 24)" fill="url(#pencilGrad)" />
+          {/* Pen tip */}
+          <path d="M72.2 55.4L77.7 52.2L73.9 49L72.2 55.4Z" fill="#ffe4e6" />
+          {/* Lead tip point */}
+          <path d="M72.2 55.4L74.4 54.1L73.1 53.0L72.2 55.4Z" fill="#e11d48" />
+          {/* Metal eraser ring */}
+          <rect x="56" y="24" width="8" height="4" transform="rotate(-30 56 24)" fill="#fda4af" />
+          {/* Eraser */}
+          <rect x="55" y="22" width="6" height="4" rx="1" transform="rotate(-30 55 22)" fill="#fff1f2" />
+        </g>
+      </svg>
+    </div>
+  );
+};
 
 // Calendar Date Picker Helpers
 const getDaysInMonth = (year: number, month: number) => {
@@ -54,7 +134,7 @@ const monthsList = [
 interface CommunicationLog {
   id: string;
   user_id: string;
-  category: 'unhappy' | 'agenda' | 'reflection';
+  category: 'unhappy' | 'agenda' | 'reflection' | 'memo';
   content: string;
   reflection_action?: string;
   is_private: boolean;
@@ -94,7 +174,7 @@ export const MonthlyReview: React.FC = () => {
   const [communicationLogs, setCommunicationLogs] = useState<CommunicationLog[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const [showLogModal, setShowLogModal] = useState(false);
-  const [logCategory, setLogCategory] = useState<'unhappy' | 'agenda' | 'reflection'>('unhappy');
+  const [logCategory, setLogCategory] = useState<'unhappy' | 'agenda' | 'reflection' | 'memo'>('unhappy');
   const [logContent, setLogContent] = useState('');
   const [logAction, setLogAction] = useState('');
   const [logIsPrivate, setLogIsPrivate] = useState(false);
@@ -173,7 +253,7 @@ export const MonthlyReview: React.FC = () => {
             <Calendar size={13} className="text-rose-500 animate-pulse" />
             <span>{proposedDateInput.replace('T', ' ').replace(/-/g, '/')}</span>
           </span>
-          <span className="text-[9px] text-rose-500 font-extrabold bg-rose-50 px-2 py-0.5 rounded-md border border-rose-100/30">选择时间 📅</span>
+          <span className="text-[9px] text-rose-500 font-extrabold bg-rose-50 px-2 py-0.5 rounded-md border border-rose-100/30 flex items-center gap-0.5"><Calendar size={9} />选择时间</span>
         </button>
 
         {showDatePicker && (
@@ -680,7 +760,7 @@ export const MonthlyReview: React.FC = () => {
         category: logCategory,
         content: logContent.trim(),
         reflection_action: logCategory === 'reflection' ? logAction.trim() : null,
-        is_private: logCategory === 'agenda' ? false : logIsPrivate,
+        is_private: logCategory === 'memo' ? true : (logCategory === 'agenda' ? false : logIsPrivate),
         status: 'pending',
       };
 
@@ -731,7 +811,8 @@ export const MonthlyReview: React.FC = () => {
           status: 'discussed',
           review_id: currentReview.id,
         })
-        .eq('status', 'pending');
+        .eq('status', 'pending')
+        .neq('category', 'memo');
 
       if (logsError) throw logsError;
 
@@ -767,14 +848,36 @@ export const MonthlyReview: React.FC = () => {
     return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日 约定日`;
   };
 
-  const getLogCategoryDetails = (cat: 'unhappy' | 'agenda' | 'reflection') => {
+  const getLogCategoryDetails = (cat: 'unhappy' | 'agenda' | 'reflection' | 'memo') => {
     switch (cat) {
       case 'unhappy':
-        return { label: '💔 摩擦与委屈', border: 'border-rose-100 bg-rose-50/20', badge: 'bg-rose-100 text-rose-700' };
+        return { 
+          text: '摩擦与委屈', 
+          icon: <HeartCrack size={10} className="mr-1 inline-block" />, 
+          border: 'border-rose-100 bg-rose-50/20', 
+          badge: 'bg-rose-100 text-rose-700' 
+        };
       case 'reflection':
-        return { label: '🌱 自省与改正', border: 'border-emerald-100 bg-emerald-50/20', badge: 'bg-emerald-100 text-emerald-700' };
+        return { 
+          text: '自省与改正', 
+          icon: <Sprout size={10} className="mr-1 inline-block" />, 
+          border: 'border-emerald-100 bg-emerald-50/20', 
+          badge: 'bg-emerald-100 text-emerald-700' 
+        };
       case 'agenda':
-        return { label: '📋 下期议题', border: 'border-indigo-100 bg-indigo-50/20', badge: 'bg-indigo-100 text-indigo-700' };
+        return { 
+          text: '下期议题', 
+          icon: <ClipboardList size={10} className="mr-1 inline-block" />, 
+          border: 'border-indigo-100 bg-indigo-50/20', 
+          badge: 'bg-indigo-100 text-indigo-700' 
+        };
+      case 'memo':
+        return { 
+          text: '私人备忘录', 
+          icon: <Bookmark size={10} className="mr-1 inline-block" />, 
+          border: 'border-amber-100 bg-amber-50/20', 
+          badge: 'bg-amber-100 text-amber-700' 
+        };
     }
   };
 
@@ -790,7 +893,10 @@ export const MonthlyReview: React.FC = () => {
             onChange={(e) => setForceUnlock(e.target.checked)}
             className="sr-only peer"
           />
-          <span className="mr-2">🔧 开发者调试解锁</span>
+          <span className="mr-2 flex items-center space-x-1">
+            <Wrench size={11} className="text-rose-500" />
+            <span>开发者调试解锁</span>
+          </span>
           <div className="relative w-7 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-rose-500"></div>
         </label>
       </div>
@@ -802,7 +908,10 @@ export const MonthlyReview: React.FC = () => {
           <div className="bg-gradient-to-r from-amber-500 to-rose-500 text-white p-4 rounded-3xl text-center space-y-2.5 shadow-lg shadow-rose-200/50 animate-glow-breath">
             <div className="flex items-center justify-center space-x-1.5">
               <Sparkles size={14} className="text-amber-200 animate-pulse" />
-              <p className="text-xs font-black">🛋️ 约定日已开启！双人沟通茶室就绪</p>
+              <p className="text-xs font-black flex items-center justify-center space-x-1">
+                <Coffee size={14} className="text-amber-200" />
+                <span>约定日已开启！双人沟通茶室就绪</span>
+              </p>
             </div>
             <button
               onClick={() => setInTeaRoom(true)}
@@ -817,27 +926,30 @@ export const MonthlyReview: React.FC = () => {
         <div className="flex border border-rose-100/50 bg-white/40 backdrop-blur-md rounded-2xl p-1 shadow-inner">
           <button
             onClick={() => setActiveTab('logs')}
-            className={`flex-1 py-2 text-center text-xs font-black rounded-xl transition duration-300 ${
+            className={`flex-1 py-2 rounded-xl transition duration-300 flex items-center justify-center space-x-1 text-xs font-black ${
               activeTab === 'logs' ? 'bg-rose-500 text-white shadow-md' : 'text-rose-800 hover:bg-rose-50/50'
             }`}
           >
-            📝 沟通手记
+            <BookOpen size={13} />
+            <span>沟通手记</span>
           </button>
           <button
             onClick={() => setActiveTab('plan')}
-            className={`flex-1 py-2 text-center text-xs font-black rounded-xl transition duration-300 ${
+            className={`flex-1 py-2 rounded-xl transition duration-300 flex items-center justify-center space-x-1 text-xs font-black ${
               activeTab === 'plan' ? 'bg-rose-500 text-white shadow-md' : 'text-rose-800 hover:bg-rose-50/50'
             }`}
           >
-            🗓️ 约定计划
+            <Calendar size={13} />
+            <span>约定计划</span>
           </button>
           <button
             onClick={() => setActiveTab('history')}
-            className={`flex-1 py-2 text-center text-xs font-black rounded-xl transition duration-300 ${
+            className={`flex-1 py-2 rounded-xl transition duration-300 flex items-center justify-center space-x-1 text-xs font-black ${
               activeTab === 'history' ? 'bg-rose-500 text-white shadow-md' : 'text-rose-800 hover:bg-rose-50/50'
             }`}
           >
-            📜 时光约定墙
+            <Scroll size={13} />
+            <span>时光约定墙</span>
           </button>
         </div>
 
@@ -848,7 +960,10 @@ export const MonthlyReview: React.FC = () => {
             {/* Create Trigger Card */}
             <div className="glass-panel rounded-2xl p-4 flex justify-between items-center bg-white/50 shadow-inner">
               <div className="space-y-0.5">
-                <span className="text-xs font-black text-rose-800 block">📝 沟通手记</span>
+                <span className="text-xs font-black text-rose-800 flex items-center space-x-1">
+                  <BookOpen size={13} className="text-rose-500" />
+                  <span>沟通手记</span>
+                </span>
                 <span className="text-[9px] text-rose-600/70 font-medium block">随时记录不快、议题或自我反思</span>
               </div>
               <button
@@ -868,13 +983,17 @@ export const MonthlyReview: React.FC = () => {
               <div className="space-y-4">
                 {communicationLogs.length === 0 ? (
                   <div className="glass-panel rounded-2xl p-8 text-center space-y-3 bg-white/40">
-                    <div className="text-3xl animate-bounce">✍️</div>
-                    <p className="text-xs text-rose-700/60 font-black">平时有什么不开心、自省或议题吗？</p>
-                    <p className="text-[10px] text-rose-500/80">点击上方的“+”记录下来，在约定日一同解开温情心结。</p>
+                    <EmptyLogsIcon className="w-16 h-16" />
+                    <p className="text-xs text-rose-700/60 font-black pt-2">平时有什么不开心、自省或议题吗？</p>
+                    <p className="text-[10px] text-rose-555">点击上方的“+”记录下来，在约定日一同解开温情心结。</p>
                   </div>
                 ) : (
                   communicationLogs.map((log) => {
                     const isMine = log.user_id === currentUser?.id;
+                    if (log.category === 'memo' && !isMine) {
+                      return null;
+                    }
+
                     const writerProfile = profiles.find((p) => p.id === log.user_id);
                     const writerNickname = isMine ? '我' : (writerProfile?.nickname || '伴侣');
                     const isPartnerPrivate = !isMine && log.is_private;
@@ -885,7 +1004,7 @@ export const MonthlyReview: React.FC = () => {
                           <div className="absolute inset-0 bg-white/60 backdrop-blur-md flex flex-col items-center justify-center z-10">
                             <Lock size={14} className="text-rose-400 mb-1 animate-pulse" />
                             <span className="text-[10px] text-rose-800 font-extrabold">{writerNickname} 记下了一篇神秘手记</span>
-                            <span className="text-[8px] text-rose-500/80">🔒 约定日当天自动解锁</span>
+                            <span className="text-[8px] text-rose-500/80">约定日当天自动解锁</span>
                           </div>
                           <div className="opacity-10 pointer-events-none select-none text-[8px] text-left w-full space-y-1">
                             <div>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>
@@ -903,19 +1022,27 @@ export const MonthlyReview: React.FC = () => {
                         {/* Header */}
                         <div className="flex justify-between items-center text-[10px] font-bold">
                           <div className="flex items-center space-x-2">
-                            <span className={`px-2 py-0.5 rounded-full ${details.badge} text-[8px] font-black`}>
-                              {details.label}
+                            <span className={`px-2 py-0.5 rounded-full ${details.badge} text-[8px] font-black flex items-center`}>
+                              {details.icon}
+                              <span>{details.text}</span>
                             </span>
                             <span className="text-rose-700/60">
                               由 <span className="text-rose-800">{writerNickname}</span> 记录
                             </span>
                           </div>
                           <div className="flex items-center space-x-2">
-                            {log.is_private && isMine && (
+                            {log.category === 'memo' ? (
                               <span className="text-[8px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-100 flex items-center">
-                                <Clock size={8} className="mr-0.5" />
-                                🤫 约定日可见
+                                <Lock size={8} className="mr-0.5" />
+                                <span>仅自己可见</span>
                               </span>
+                            ) : (
+                              log.is_private && isMine && (
+                                <span className="text-[8px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-md border border-amber-100 flex items-center">
+                                  <Clock size={8} className="mr-0.5" />
+                                  <span>约定日可见</span>
+                                </span>
+                              )
                             )}
                             {isMine && (
                               <button
@@ -937,7 +1064,10 @@ export const MonthlyReview: React.FC = () => {
                         {/* Action Details */}
                         {log.category === 'reflection' && log.reflection_action && (
                           <div className="bg-emerald-50/30 border border-emerald-100/45 rounded-xl p-2.5 text-[10px] space-y-1">
-                            <span className="font-extrabold text-emerald-800 block">💡 我的改正计划：</span>
+                            <span className="font-extrabold text-emerald-800 flex items-center space-x-1 mb-0.5">
+                              <Lightbulb size={12} className="text-emerald-600" />
+                              <span>我的改正计划：</span>
+                            </span>
                             <p className="text-emerald-700 font-medium whitespace-pre-wrap leading-relaxed">{log.reflection_action}</p>
                           </div>
                         )}
@@ -976,7 +1106,7 @@ export const MonthlyReview: React.FC = () => {
                   <div className="w-16 h-16 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mx-auto animate-float-left">
                     <Calendar size={28} />
                   </div>
-                  <h2 className="text-sm font-extrabold text-rose-800">🗓️ 商定约定时间</h2>
+                  <h2 className="text-sm font-extrabold text-rose-800 flex items-center justify-center space-x-1.5"><Calendar size={15} className="text-rose-500" /><span>商定约定时间</span></h2>
                   <p className="text-[10px] text-rose-600/80 leading-relaxed font-medium">
                     请选择一个彼此都舒服的时间，向 Ta 发起下一次约定邀约吧！
                   </p>
@@ -996,7 +1126,7 @@ export const MonthlyReview: React.FC = () => {
                         type="submit"
                         className="flex-1 bg-rose-500 hover:bg-rose-600 text-white font-semibold py-2.5 px-4 rounded-xl transition active:scale-95 text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-rose-200"
                       >
-                        <span>🚀 发起邀约</span>
+                        <Send size={12} /><span>发起邀约</span>
                       </button>
                     </div>
                   </form>
@@ -1009,7 +1139,7 @@ export const MonthlyReview: React.FC = () => {
                       <div className="w-16 h-16 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto animate-pulse">
                         <Clock size={28} />
                       </div>
-                      <h2 className="text-sm font-extrabold text-amber-800">⏳ 等待伴侣答复中</h2>
+                      <h2 className="text-sm font-extrabold text-amber-800 flex items-center justify-center space-x-1.5"><Hourglass size={15} className="text-amber-500" /><span>等待伴侣答复中</span></h2>
                       <div className="text-[10px] text-amber-700/80 leading-relaxed font-medium">
                         你已发送邀约，提议在以下时间见面：
                         <span className="block mt-1 bg-amber-100/50 text-amber-800 py-1.5 px-3 rounded-lg font-bold">
@@ -1023,7 +1153,7 @@ export const MonthlyReview: React.FC = () => {
                           onClick={() => setIsChangingDate(true)}
                           className="w-full bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 font-semibold py-2.5 px-4 rounded-xl transition active:scale-95 text-xs flex items-center justify-center space-x-1.5"
                         >
-                          <span>✏️ 修改提议时间</span>
+                          <Pencil size={12} /><span>修改提议时间</span>
                         </button>
                       ) : (
                         <form onSubmit={handleProposeDate} className="space-y-3 pt-2">
@@ -1052,7 +1182,7 @@ export const MonthlyReview: React.FC = () => {
                       <div className="w-16 h-16 bg-rose-100 text-rose-500 rounded-full flex items-center justify-center mx-auto animate-bounce">
                         <Unlock size={28} />
                       </div>
-                      <h2 className="text-sm font-extrabold text-rose-800">💞 收到伴侣的邀约！</h2>
+                      <h2 className="text-sm font-extrabold text-rose-800 flex items-center justify-center space-x-1.5"><Heart size={15} className="text-rose-500 fill-rose-400" /><span>收到伴侣的邀约！</span></h2>
                       <div className="text-[10px] text-rose-700/80 leading-relaxed font-medium">
                         伴侣 **{getProfileNickname(currentReview.last_proposer_id)}** 提议了约定时间：
                         <span className="block mt-1 bg-rose-50 text-rose-800 py-1.5 px-3 rounded-lg font-bold border border-rose-100">
@@ -1066,13 +1196,13 @@ export const MonthlyReview: React.FC = () => {
                             onClick={handleAcceptProposal}
                             className="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-2.5 px-4 rounded-xl transition active:scale-95 text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-rose-200"
                           >
-                            <span>👍 欣然应邀</span>
+                            <ThumbsUp size={12} /><span>欣然应邀</span>
                           </button>
                           <button
                             onClick={() => setIsChangingDate(true)}
-                            className="w-full bg-white border border-rose-200 hover:bg-rose-50/50 text-rose-600 font-bold py-2.5 px-4 rounded-xl transition active:scale-95 text-xs"
+                            className="w-full bg-white border border-rose-200 hover:bg-rose-50/50 text-rose-600 font-bold py-2.5 px-4 rounded-xl transition active:scale-95 text-xs flex items-center justify-center space-x-1.5"
                           >
-                            <span>⏰ 换个时间</span>
+                            <AlarmClock size={12} /><span>换个时间</span>
                           </button>
                         </div>
                       ) : (
@@ -1108,7 +1238,7 @@ export const MonthlyReview: React.FC = () => {
                       <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto animate-bounce">
                         <Unlock size={28} className="text-rose-500" />
                       </div>
-                      <h2 className="text-sm font-extrabold text-rose-800">🛋️ 双人沟通时刻到啦！</h2>
+                      <h2 className="text-sm font-extrabold text-rose-800 flex items-center justify-center space-x-1.5"><Coffee size={15} className="text-rose-500" /><span>双人沟通时刻到啦！</span></h2>
                       <p className="text-[10px] text-rose-600/80 leading-relaxed font-medium">
                         这是属于你们的静心沟通时间。去一个安静放松的地方，抱着包容的心，点击下方开启茶室吧。
                       </p>
@@ -1116,7 +1246,7 @@ export const MonthlyReview: React.FC = () => {
                         onClick={() => setInTeaRoom(true)}
                         className="w-full bg-rose-500 hover:bg-rose-655 text-white font-bold py-2.5 px-4 rounded-xl transition active:scale-95 text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-rose-200 animate-timer-beat"
                       >
-                        <span>🛋️ 开启双人沟通茶室</span>
+                        <Coffee size={12} /><span>开启双人沟通茶室</span>
                       </button>
                     </div>
                   ) : isPastDay ? (
@@ -1125,7 +1255,7 @@ export const MonthlyReview: React.FC = () => {
                       <div className="w-16 h-16 bg-rose-50 text-rose-450 rounded-full flex items-center justify-center mx-auto">
                         <Lock size={28} />
                       </div>
-                      <h2 className="text-sm font-extrabold text-rose-800">⌛ 上期约定已逾期</h2>
+                      <h2 className="text-sm font-extrabold text-rose-800 flex items-center justify-center space-x-1.5"><Hourglass size={15} className="text-rose-400" /><span>上期约定已逾期</span></h2>
                       <p className="text-[10px] text-rose-600/80 leading-relaxed font-medium font-sans">
                         原定于以下时间见面的约定已过截止日期：
                         <span className="block mt-1 bg-rose-50/50 text-rose-700 py-1.5 px-3 rounded-lg font-bold border border-rose-100">
@@ -1137,7 +1267,7 @@ export const MonthlyReview: React.FC = () => {
                         onClick={() => setIsInitiatingNew(true)}
                         className="w-full bg-rose-500 hover:bg-rose-600 text-white font-bold py-2.5 px-4 rounded-xl transition active:scale-95 text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-rose-200"
                       >
-                        <span>⏰ 重新商定时间</span>
+                        <AlarmClock size={12} /><span>重新商定时间</span>
                       </button>
                     </div>
                   ) : (
@@ -1146,7 +1276,7 @@ export const MonthlyReview: React.FC = () => {
                       <div className="w-16 h-16 bg-rose-500/10 text-rose-500 rounded-full flex items-center justify-center mx-auto animate-glow-breath">
                         <Lock size={28} />
                       </div>
-                      <h2 className="text-sm font-extrabold text-rose-800">🔒 约定达成，静候开启</h2>
+                      <h2 className="text-sm font-extrabold text-rose-800 flex items-center justify-center space-x-1.5"><Lock size={15} className="text-rose-500" /><span>约定达成，静候开启</span></h2>
                       <div className="text-[10px] text-rose-600/80 leading-relaxed font-medium">
                         约定已达成！约定于以下时间见面：
                         <span className="block mt-1 bg-rose-50 text-rose-800 py-1.5 px-3 rounded-lg font-bold border border-rose-100">
@@ -1156,7 +1286,7 @@ export const MonthlyReview: React.FC = () => {
                       
                       {/* Countdown display */}
                       <div className="bg-gradient-to-r from-rose-50 to-pink-50 border border-rose-100 rounded-2xl py-3 px-4 text-center shadow-inner">
-                        <span className="text-[9px] text-rose-500 font-bold block mb-1">⏱️ 距离见面还有</span>
+                        <span className="text-[9px] text-rose-500 font-bold block mb-1 flex items-center justify-center space-x-0.5"><Timer size={9} /><span>距离见面还有</span></span>
                         <span className="text-xs font-black text-rose-600 tracking-wider font-mono">
                           {countdownText || '正在计算...'}
                         </span>
@@ -1194,10 +1324,10 @@ export const MonthlyReview: React.FC = () => {
                       {formatReviewDate(rev.scheduled_date)}
                     </span>
                     <div className="flex items-center space-x-1.5">
-                      <span className="text-[9px] text-rose-500 font-extrabold bg-rose-50 px-2 py-0.5 rounded-md border border-rose-100/30">
-                        已达成 🎉
+                      <span className="text-[9px] text-rose-500 font-extrabold bg-rose-50 px-2 py-0.5 rounded-md border border-rose-100/30 flex items-center gap-0.5">
+                        <PartyPopper size={9} />已达成
                       </span>
-                      <span className="text-[9px] text-rose-400">查看 ➔</span>
+                      <span className="text-[9px] text-rose-400 flex items-center">查看<ChevronRight size={9} /></span>
                     </div>
                   </button>
                 ))}
@@ -1235,11 +1365,12 @@ export const MonthlyReview: React.FC = () => {
               {/* Category selector */}
               <div className="space-y-1">
                 <span className="text-[9px] font-black text-rose-500 block">选择分类：</span>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   {[
-                    { cat: 'unhappy', label: '💔 委屈摩擦', desc: '发生摩擦或不舒服' },
+                    { cat: 'unhappy', label: '🥺 委屈摩擦', desc: '发生摩擦或不舒服' },
                     { cat: 'reflection', label: '🌱 自我反思', desc: '反思改正自身问题' },
-                    { cat: 'agenda', label: '📋 讨论议题', desc: '下次想商量的大事' }
+                    { cat: 'agenda', label: '📋 讨论议题', desc: '下次想商量的大事' },
+                    { cat: 'memo', label: '📝 备忘录', desc: '私人备忘，仅己可见' }
                   ].map((item) => (
                     <button
                       key={item.cat}
@@ -1247,6 +1378,7 @@ export const MonthlyReview: React.FC = () => {
                       onClick={() => {
                         setLogCategory(item.cat as any);
                         if (item.cat === 'agenda') setLogIsPrivate(false);
+                        if (item.cat === 'memo') setLogIsPrivate(true);
                       }}
                       className={`py-2 px-1 text-[10px] font-bold border rounded-xl flex flex-col items-center justify-center space-y-0.5 transition active:scale-95 ${
                         logCategory === item.cat 
@@ -1271,18 +1403,20 @@ export const MonthlyReview: React.FC = () => {
                       ? '这一个月中什么事情让你感到不舒服了，或者对方说了什么话让你觉得委屈？在这写下，约定日一同商量解决...' 
                       : logCategory === 'reflection' 
                         ? '突然发现自己哪些地方做得不对，或者在相处时有些任性？在这里反思一下...'
-                        : '有什么大事是想要下个约定日面对面重点商量决定的？（如金钱管理、坏习惯改掉、出游计划等）'
+                        : logCategory === 'agenda'
+                          ? '有什么大事是想要下个约定日面对面重点商量决定的？（如金钱管理、坏习惯改掉、出游计划等）'
+                          : '在这里写下只有你自己能看到的备忘、随笔或心情日记'
                   }
                   required
                   rows={4}
-                  className="w-full bg-rose-50/15 border border-rose-100 rounded-xl p-3 text-xs text-rose-950 focus:outline-none focus:ring-1 focus:ring-rose-400 focus:bg-white shadow-inner"
+                  className="w-full bg-rose-50/15 border border-rose-100 rounded-xl p-3 text-xs text-rose-955 focus:outline-none focus:ring-1 focus:ring-rose-400 focus:bg-white shadow-inner"
                 />
               </div>
 
               {/* Reflection action input (if reflection) */}
               {logCategory === 'reflection' && (
                 <div className="space-y-1 animate-slide-up">
-                  <span className="text-[9px] font-black text-emerald-600 block">🤔 我打算怎么改正：</span>
+                  <span className="text-[9px] font-black text-emerald-600 flex items-center space-x-0.5"><Lightbulb size={9} /><span>我打算怎么改正：</span></span>
                   <textarea
                     value={logAction}
                     onChange={(e) => setLogAction(e.target.value)}
@@ -1294,12 +1428,12 @@ export const MonthlyReview: React.FC = () => {
                 </div>
               )}
 
-              {/* Private toggle (except agenda) */}
-              {logCategory !== 'agenda' && (
+              {/* Private toggle (except agenda and memo) */}
+              {logCategory !== 'agenda' && logCategory !== 'memo' && (
                 <div className="flex items-center justify-between bg-rose-50/30 p-2.5 rounded-xl border border-rose-100/40">
                   <div className="space-y-0.5">
-                    <span className="text-[9px] font-black text-rose-700 block">🤫 约定日才让 Ta 看到</span>
-                    <span className="text-[8px] text-rose-500/70 block">开启后平时隐藏，防止即时微信吵架</span>
+                    <span className="text-[9px] font-black text-rose-700 flex items-center space-x-0.5"><EyeOff size={9} /><span>约定日才让 Ta 看到</span></span>
+                    <span className="text-[8px] text-rose-500/70 block">开启后平时隐藏</span>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
@@ -1309,6 +1443,42 @@ export const MonthlyReview: React.FC = () => {
                       className="sr-only peer"
                     />
                     <div className="w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-rose-500"></div>
+                  </label>
+                </div>
+              )}
+
+              {logCategory === 'memo' && (
+                <div className="flex items-center justify-between bg-amber-50/40 p-2.5 rounded-xl border border-amber-100/40">
+                  <div className="space-y-0.5">
+                    <span className="text-[9px] font-black text-amber-700 flex items-center space-x-0.5"><Lock size={9} /><span>仅自己可见 (私人备忘)</span></span>
+                    <span className="text-[8px] text-amber-500/70 block">此备忘录仅你自己可见</span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-not-allowed opacity-60">
+                    <input
+                      type="checkbox"
+                      checked={true}
+                      disabled
+                      className="sr-only peer"
+                    />
+                    <div className="w-8 h-4 bg-amber-500 rounded-full after:content-[''] after:absolute after:top-[2px] after:start-[18px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3"></div>
+                  </label>
+                </div>
+              )}
+
+              {logCategory === 'agenda' && (
+                <div className="flex items-center justify-between bg-indigo-50/40 p-2.5 rounded-xl border border-indigo-100/40">
+                  <div className="space-y-0.5">
+                    <span className="text-[9px] font-black text-indigo-700 flex items-center space-x-0.5"><Megaphone size={9} /><span>伴侣随时可见 (公开议题)</span></span>
+                    <span className="text-[8px] text-indigo-500/70 block">讨论议题为公开内容，伴侣随时可以查看到此项</span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-not-allowed opacity-60">
+                    <input
+                      type="checkbox"
+                      checked={true}
+                      disabled
+                      className="sr-only peer"
+                    />
+                    <div className="w-8 h-4 bg-indigo-500 rounded-full after:content-[''] after:absolute after:top-[2px] after:start-[18px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3"></div>
                   </label>
                 </div>
               )}
@@ -1379,7 +1549,7 @@ export const MonthlyReview: React.FC = () => {
               
               {/* Header */}
               <div className="text-center space-y-1">
-                <span className="text-[9px] text-amber-800 font-black block tracking-widest">📜 时光约定信件</span>
+                <span className="text-[9px] text-amber-800 font-black tracking-widest flex items-center justify-center space-x-1"><Scroll size={10} /><span>时光约定信件</span></span>
                 <h3 className="text-sm font-black text-amber-950">
                   {formatReviewDate(selectedHistoryReview.scheduled_date)}
                 </h3>
@@ -1387,8 +1557,8 @@ export const MonthlyReview: React.FC = () => {
 
               {/* Suggestions / Agreements */}
               <div className="space-y-2 border-t border-dashed border-amber-900/20 pt-4">
-                <span className="text-xs font-black text-amber-900 flex items-center">
-                  🤝 两人的新约定与共识
+                <span className="text-xs font-black text-amber-900 flex items-center space-x-1">
+                  <Handshake size={13} className="text-amber-700" /><span>两人的新约定与共识</span>
                 </span>
                 <div className="bg-white/50 border border-amber-900/10 rounded-2xl p-4 text-xs text-amber-955 whitespace-pre-wrap leading-relaxed font-sans shadow-inner">
                   {selectedHistoryReview.suggestions || '本次约定没有记录具体的新约定文本。'}
@@ -1397,8 +1567,8 @@ export const MonthlyReview: React.FC = () => {
 
               {/* Logs associated */}
               <div className="space-y-3 border-t border-dashed border-amber-900/20 pt-4">
-                <span className="text-xs font-black text-amber-900 flex items-center">
-                  🌱 当期探讨的沟通手记 ({selectedHistoryLogs.length})
+                <span className="text-xs font-black text-amber-900 flex items-center space-x-1">
+                  <Sprout size={13} className="text-amber-700" /><span>当期探讨的沟通手记 ({selectedHistoryLogs.length})</span>
                 </span>
                 
                 {selectedHistoryLogs.length === 0 ? (
@@ -1407,6 +1577,10 @@ export const MonthlyReview: React.FC = () => {
                   <div className="space-y-2.5 max-h-[30vh] overflow-y-auto pr-1">
                     {selectedHistoryLogs.map((log) => {
                       const isMine = log.user_id === currentUser?.id;
+                      if (log.category === 'memo' && !isMine) {
+                        return null;
+                      }
+
                       const writerProfile = profiles.find((p) => p.id === log.user_id);
                       const writerNickname = isMine ? '我' : (writerProfile?.nickname || '伴侣');
                       
@@ -1415,7 +1589,7 @@ export const MonthlyReview: React.FC = () => {
                       return (
                         <div key={log.id} className={`border rounded-xl p-2.5 text-[10px] leading-relaxed space-y-1 bg-white/40 shadow-2xs font-sans ${details.border}`}>
                           <div className="flex justify-between items-center text-[8px] font-black border-b border-black/5 pb-1 mb-1">
-                            <span className="text-rose-900">[{details.label}] 由 {writerNickname} 记录</span>
+                            <span className="text-rose-900">[{details.text}] 由 {writerNickname} 记录</span>
                             <span>{new Date(log.created_at).toLocaleDateString()}</span>
                           </div>
                           <p className="font-medium text-rose-950">{log.content}</p>

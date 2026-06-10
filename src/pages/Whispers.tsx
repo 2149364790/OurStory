@@ -11,6 +11,177 @@ const monthsList = [
   '七月', '八月', '九月', '十月', '十一月', '十二月'
 ];
 
+// Beautiful custom 3D-styled Love Letter icon component to replace the rigid 💌 emoji
+const LoveLetterIcon: React.FC<{ className?: string }> = ({ className = "w-10 h-10" }) => {
+  return (
+    <div className={`relative ${className} flex items-center justify-center`}>
+      {/* Ambient background glow */}
+      <div className="absolute inset-0 bg-rose-400/20 rounded-full blur-md animate-pulse" />
+      <svg
+        className="w-full h-full relative z-10 filter drop-shadow-[0_4px_6px_rgba(244,63,94,0.15)] hover:scale-105 transition-transform duration-300"
+        viewBox="0 0 100 100"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <linearGradient id="envBackGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#fff1f2" />
+            <stop offset="100%" stopColor="#ffe4e6" />
+          </linearGradient>
+          <linearGradient id="envBodyGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+            <stop offset="0%" stopColor="#fda4af" />
+            <stop offset="100%" stopColor="#f43f5e" />
+          </linearGradient>
+          <linearGradient id="paperGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#ffffff" />
+            <stop offset="100%" stopColor="#fff5f5" />
+          </linearGradient>
+          <linearGradient id="heartRed" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#ff5a79" />
+            <stop offset="100%" stopColor="#e11d48" />
+          </linearGradient>
+          <filter id="shadowPaper" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="3" stdDeviation="3" floodColor="#be123c" floodOpacity="0.15" />
+          </filter>
+        </defs>
+
+        {/* Back Panel */}
+        <path
+          d="M10 40C10 35.5817 13.5817 32 18 32H82C86.4183 32 90 35.5817 90 40V80C90 84.4183 86.4183 88 82 88H18C13.5817 88 10 84.4183 10 80V40Z"
+          fill="url(#envBackGrad)"
+          stroke="#ffe4e6"
+          strokeWidth="1.5"
+        />
+
+        {/* Sliding Letter (Inside Envelope) */}
+        <g className="animate-[bounce_3s_infinite_ease-in-out]" style={{ transformOrigin: 'center bottom' }}>
+          <rect
+            x="22"
+            y="12"
+            width="56"
+            height="46"
+            rx="8"
+            fill="url(#paperGrad)"
+            stroke="#fecdd3"
+            strokeWidth="1.5"
+            filter="url(#shadowPaper)"
+          />
+          {/* Lined paper lines */}
+          <line x1="32" y1="24" x2="68" y2="24" stroke="#fda4af" strokeWidth="2" strokeLinecap="round" opacity="0.6" />
+          <line x1="32" y1="32" x2="58" y2="32" stroke="#fda4af" strokeWidth="2" strokeLinecap="round" opacity="0.6" />
+          <line x1="32" y1="40" x2="64" y2="40" stroke="#fda4af" strokeWidth="2" strokeLinecap="round" opacity="0.6" />
+
+          {/* Red Heart on the Paper */}
+          <path
+            d="M50 51C50 51 43 45.5 43 40C43 36.5 45.5 34 48.5 34C50 34 50 35.5 50 35.5C50 35.5 50 34 51.5 34C54.5 34 57 36.5 57 40C57 45.5 50 51 50 51Z"
+            fill="url(#heartRed)"
+            className="animate-pulse"
+            style={{ transformOrigin: '50px 42px' }}
+          />
+        </g>
+
+        {/* Front Envelope Body (Flaps that cover the bottom and sides) */}
+        <path
+          d="M10 40L44.5 64.15C47.8 66.46 52.2 66.46 55.5 64.15L90 40V80C90 84.4183 86.4183 88 82 88H18C13.5817 88 10 84.4183 10 80V40Z"
+          fill="url(#envBodyGrad)"
+        />
+
+        {/* Overlay line highlights to give depth to front folds */}
+        <path
+          d="M10 40L43 63.1C47.2 66.04 52.8 66.04 57 63.1L90 40"
+          stroke="#ffe4e6"
+          strokeWidth="2"
+          strokeLinecap="round"
+          opacity="0.9"
+        />
+
+        {/* Top open flap details */}
+        <path
+          d="M10 40C10 40 25 50 50 50C75 50 90 40 90 40"
+          stroke="#e11d48"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          opacity="0.8"
+        />
+      </svg>
+    </div>
+  );
+};
+
+// Beautiful custom empty/closed Envelope icon component to replace the rigid ✉️ emoji
+const EmptyEnvelopeIcon: React.FC<{ className?: string }> = ({ className = "w-12 h-12" }) => {
+  return (
+    <div className={`relative ${className} flex items-center justify-center`}>
+      {/* Small floating sparkles around */}
+      <span className="absolute -top-1 -right-1 text-amber-400 text-[10px] animate-ping">✨</span>
+      <span className="absolute -bottom-1 -left-1 text-rose-300 text-[10px] animate-pulse">✨</span>
+      
+      <svg
+        className="w-full h-full filter drop-shadow-[0_4px_8px_rgba(236,72,153,0.15)] hover:scale-105 transition-transform duration-300"
+        viewBox="0 0 100 100"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <linearGradient id="emptyEnvBack" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#fdf2f8" />
+            <stop offset="100%" stopColor="#fbcfe8" />
+          </linearGradient>
+          <linearGradient id="emptyEnvFront" x1="0%" y1="100%" x2="0%" y2="0%">
+            <stop offset="0%" stopColor="#fbcfe8" />
+            <stop offset="100%" stopColor="#ec4899" />
+          </linearGradient>
+          <linearGradient id="heartGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#fb7185" />
+            <stop offset="100%" stopColor="#e11d48" />
+          </linearGradient>
+          <filter id="stickerShadow" x="-30%" y="-30%" width="160%" height="160%">
+            <feDropShadow dx="0" dy="2" stdDeviation="1.5" floodColor="#db2777" floodOpacity="0.2" />
+          </filter>
+        </defs>
+
+        {/* Envelope back panel */}
+        <rect
+          x="10"
+          y="26"
+          width="80"
+          height="54"
+          rx="10"
+          fill="url(#emptyEnvBack)"
+          stroke="#fbcfe8"
+          strokeWidth="1.5"
+        />
+
+        {/* Envelope front fold (bottom and side triangular flaps) */}
+        <path
+          d="M10 26L43.8 51.35C47.5 54.12 52.5 54.12 56.2 51.35L90 26V72C90 76.4183 86.4183 80 82 80H18C13.5817 80 10 76.4183 10 72V26Z"
+          fill="url(#emptyEnvFront)"
+        />
+
+        {/* Top flap crease */}
+        <path
+          d="M10 26L43 50.75C47.2 53.9 52.8 53.9 57 50.75L90 26"
+          stroke="#fbcfe8"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          opacity="0.9"
+        />
+
+        {/* Sealed wax sticker in center */}
+        <g filter="url(#stickerShadow)" className="hover:scale-110 transition-transform duration-200" style={{ transformOrigin: '50px 50px' }}>
+          {/* White circular stamp */}
+          <circle cx="50" cy="50" r="9" fill="#ffffff" stroke="#fbcfe8" strokeWidth="1" />
+          {/* Cute pink/red heart inside sticker */}
+          <path
+            d="M50 54.5C50 54.5 45.5 51 45.5 47.8C45.5 45.8 46.8 44.5 48.5 44.5C49.5 44.5 50 45.2 50 45.2C50 45.2 50.5 44.5 51.5 44.5C53.2 44.5 54.5 45.8 54.5 47.8C54.5 51 50 54.5 50 54.5Z"
+            fill="url(#heartGrad)"
+          />
+        </g>
+      </svg>
+    </div>
+  );
+};
+
 export const Whispers: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [profiles, setProfiles] = useState<any[]>([]);
@@ -1167,8 +1338,12 @@ export const Whispers: React.FC = () => {
             <div className="absolute w-28 h-28 rounded-full bg-indigo-300/10 blur-xl -bottom-8 -right-8 pointer-events-none" />
 
             <div className="relative z-10 flex items-start space-x-3.5">
-              <div className="text-3xl p-2.5 rounded-2xl bg-white/60 border border-white/80 shadow-inner flex items-center justify-center shrink-0">
-                <span>{weather.icon}</span>
+              <div className="p-2.5 rounded-2xl bg-white/60 border border-white/80 shadow-inner flex items-center justify-center shrink-0 w-14 h-14">
+                {weather.icon === '💌' ? (
+                  <LoveLetterIcon className="w-9 h-9" />
+                ) : (
+                  <span className="text-3xl">{weather.icon}</span>
+                )}
               </div>
               <div className="space-y-1">
                 <div className="flex items-center space-x-2">
@@ -1199,7 +1374,7 @@ export const Whispers: React.FC = () => {
               
               <div className="relative z-10 space-y-4">
                 <div className="w-16 h-16 bg-rose-50/50 rounded-2xl mx-auto flex items-center justify-center border border-rose-100 shadow-inner">
-                  <span className="text-3xl animate-bounce">✉️</span>
+                  <EmptyEnvelopeIcon className="w-11 h-11 animate-bounce" />
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm font-extrabold text-rose-800">树洞箱静悄悄的</p>
@@ -1908,7 +2083,7 @@ export const Whispers: React.FC = () => {
                   <div className="absolute w-20 h-20 rounded-full bg-pink-300/10 blur-xl bottom-0 right-0" />
                   <div className="relative z-10 space-y-4">
                     <div className="w-16 h-16 bg-rose-50/50 rounded-2xl mx-auto flex items-center justify-center border border-rose-100 shadow-inner">
-                      <span className="text-3xl animate-bounce">✉️</span>
+                      <EmptyEnvelopeIcon className="w-11 h-11 animate-bounce" />
                     </div>
                     <div className="space-y-1">
                       <p className="text-sm font-extrabold text-rose-800">还没有情书寄往这里</p>

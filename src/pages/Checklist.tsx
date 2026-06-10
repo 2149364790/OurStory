@@ -446,24 +446,25 @@ export const Checklist: React.FC = () => {
           <span>{activeTab === 'checklist' ? '恋爱 100 件事清单' : '悄悄话愿望清单'}</span>
         </h1>
         <div className="flex items-center space-x-1.5 shrink-0">
+          <button
+            onClick={() => {
+              setLogsOpen(true);
+              const now = new Date().toISOString();
+              localStorage.setItem('checklist_logs_last_viewed', now);
+              setHasUnreadLogs(false);
+              window.dispatchEvent(new Event('checklist_logs_read'));
+            }}
+            className="p-2 bg-rose-50 hover:bg-rose-100/80 text-rose-600 rounded-full border border-rose-100 transition active:scale-95 shadow-xs relative"
+            title="查看修改动态"
+          >
+            <FileText size={14} />
+            {hasUnreadLogs && (
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-rose-500 rounded-full border border-white animate-pulse" />
+            )}
+          </button>
+
           {activeTab === 'checklist' ? (
             <>
-              <button
-                onClick={() => {
-                  setLogsOpen(true);
-                  const now = new Date().toISOString();
-                  localStorage.setItem('checklist_logs_last_viewed', now);
-                  setHasUnreadLogs(false);
-                  window.dispatchEvent(new Event('checklist_logs_read'));
-                }}
-                className="p-2 bg-rose-50 hover:bg-rose-100/80 text-rose-600 rounded-full border border-rose-100 transition active:scale-95 shadow-xs relative"
-                title="查看修改动态"
-              >
-                <FileText size={14} />
-                {hasUnreadLogs && (
-                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-rose-500 rounded-full border border-white animate-pulse" />
-                )}
-              </button>
               <button
                 onClick={() => setCategoriesModalOpen(true)}
                 className="p-2 bg-rose-50 hover:bg-rose-100/80 text-rose-600 rounded-full border border-rose-100 transition active:scale-95 shadow-xs"

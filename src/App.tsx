@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { supabase } from './supabaseClient';
 import { Login } from './pages/Login';
 import { Home } from './pages/Home';
@@ -643,7 +643,7 @@ export const App: React.FC = () => {
   }
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <ServiceWorkerNavigator />
       <div className={`min-h-screen ${getBgClass(theme)} pb-24 transition-colors duration-1000 relative overflow-x-hidden`}>
         
@@ -881,7 +881,7 @@ export const App: React.FC = () => {
         {/* Global Custom Styled Dialog Modal */}
         <CustomModal {...modalConfig} />
       </div>
-    </BrowserRouter>
+    </HashRouter>
   );
 };
 export default App;
