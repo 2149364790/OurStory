@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
-import { ListTodo, CheckCircle2, Circle, Calendar, Edit3, X, Sparkles, Trash2, Heart, Plus, FileText, ChevronLeft, ChevronRight, Settings, Image } from 'lucide-react';
+import { ListTodo, CheckCircle2, Circle, Calendar, Edit3, X, Sparkles, Trash2, Heart, Plus, FileText, ChevronLeft, ChevronRight, Settings, Image, Star } from 'lucide-react';
 import { TimeMachineModal } from '../components/TimeMachineModal';
 import { 
   useChecklistData 
@@ -95,6 +95,7 @@ export const Checklist: React.FC = () => {
     handleCreateItem,
     handleUpdateItem,
     handleDeleteItem,
+    handleToggleItemPriority,
     handleCompleteItem,
     handleEditCompletion,
     handleDeleteCompletion,
@@ -396,6 +397,38 @@ export const Checklist: React.FC = () => {
     return matchesCategory && matchesSearch;
   });
 
+  // Sort: ① 未完成+星标 ② 未完成+普通 ③ 已完成(按最新打卡时间倒序)
+  const sortedItems = [...filteredItems].sort((a, b) => {
+    const aComps = completions.filter((c) => c.item_id === a.id);
+    const bComps = completions.filter((c) => c.item_id === b.id);
+    const aCompleted = aComps.length > 0;
+    const bCompleted = bComps.length > 0;
+
+    // 1. 未完成排前面，已完成排后面
+    if (aCompleted !== bCompleted) {
+      return aCompleted ? 1 : -1;
+    }
+
+    // 2. 都未完成时，星标重点排前面
+    if (!aCompleted) {
+      const aPri = a.is_priority ? 1 : 0;
+      const bPri = b.is_priority ? 1 : 0;
+      if (aPri !== bPri) {
+        return bPri - aPri;
+      }
+    }
+
+    // 3. 都已完成时，按最新打卡时间倒序
+    if (aCompleted) {
+      const aLatest = [...aComps].sort((x, y) => y.completed_at.localeCompare(x.completed_at))[0]?.completed_at || '';
+      const bLatest = [...bComps].sort((x, y) => y.completed_at.localeCompare(x.completed_at))[0]?.completed_at || '';
+      return bLatest.localeCompare(aLatest);
+    }
+
+    // 4. 兜底：按创建时间倒序
+    return b.created_at.localeCompare(a.created_at);
+  });
+
   const totalCount = items.length;
   const uniqueCompletedCount = new Set(completions.map(c => c.item_id)).size;
   const progressPercent = totalCount > 0 ? Math.round((uniqueCompletedCount / totalCount) * 100) : 0;
@@ -635,7 +668,7 @@ export const Checklist: React.FC = () => {
 
           {/* Grid of Checklist Cards */}
           <div className="grid grid-cols-2 gap-3 mt-1.5">
-            {filteredItems.map((item) => {
+            {sortedItems.map((item) => {
               const itemComps = completions.filter((c) => c.item_id === item.id);
               const isCompleted = itemComps.length > 0;
               const compCount = itemComps.length;
@@ -653,6 +686,25 @@ export const Checklist: React.FC = () => {
                       : 'border-dashed border-rose-200/40 bg-white/20 hover:bg-white/35 hover:border-rose-300/50 opacity-80 hover:opacity-100'
                   }`}
                 >
+                  {/* Priority Star Button */}
+                  {!isCompleted && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleItemPriority(item.id, item.is_priority, item.name);
+                      }}
+                      className={`absolute top-2.5 left-2.5 z-10 transition-all duration-300 ${
+                        item.is_priority
+                          ? 'text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)] scale-110'
+                          : 'text-rose-200/50 opacity-0 group-hover:opacity-100 hover:text-amber-300'
+                      }`}
+                      title={item.is_priority ? '取消星标重点' : '标记为星标重点'}
+                    >
+                      <Star size={14} fill={item.is_priority ? 'currentColor' : 'none'} className={item.is_priority ? 'animate-pulse' : ''} />
+                    </button>
+                  )}
+
                   {/* Checkbox Icon or Completion Count */}
                   <div className="absolute top-2.5 right-2.5 flex items-center space-x-1">
                     {isCompleted ? (
@@ -708,7 +760,7 @@ export const Checklist: React.FC = () => {
           </div>
 
           {/* Empty Search matches state */}
-          {filteredItems.length === 0 && (
+          {sortedItems.length === 0 && (
             <div className="glass-panel rounded-3xl p-10 text-center text-rose-700/60 relative overflow-hidden animate-slide-up mt-4">
               <span className="text-3xl animate-bounce inline-block mb-3">🔍</span>
               <p className="text-xs font-bold text-rose-800">未找到匹配的恋爱项目</p>

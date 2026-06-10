@@ -10,6 +10,7 @@ import { Checklist } from './pages/Checklist';
 import { PartnerWiki } from './pages/PartnerWiki';
 import { Navbar } from './components/Navbar';
 import { CustomModal } from './components/CustomModal';
+import { RoleSelectionModal } from './components/RoleSelectionModal';
 import { Heart, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -47,6 +48,9 @@ export const App: React.FC = () => {
   const [unreadLoveCard, setUnreadLoveCard] = useState<any | null>(null);
   const [showQuickReturn, setShowQuickReturn] = useState(false);
   const [isTeaRoomActive, setIsTeaRoomActive] = useState(false);
+
+  // Role selection states
+  const [showRoleSelection, setShowRoleSelection] = useState(false);
 
   // PWA 一键更新 Banner
   const [pwaUpdateFn, setPwaUpdateFn] = useState<(() => void) | null>(null);
@@ -149,6 +153,15 @@ export const App: React.FC = () => {
       supabase.removeChannel(profilesChannel);
     };
   }, [session]);
+
+  // Detect role selection status
+  useEffect(() => {
+    if (!session?.user || profiles.length === 0) return;
+    const myProfile = profiles.find(p => p.id === session.user.id);
+    if (myProfile && !myProfile.gender) {
+      setShowRoleSelection(true);
+    }
+  }, [profiles, session]);
 
   useEffect(() => {
     // Check initial session
@@ -880,6 +893,16 @@ export const App: React.FC = () => {
 
         {/* Global Custom Styled Dialog Modal */}
         <CustomModal {...modalConfig} />
+
+        {/* Role Selection Modal (highest z-index) */}
+        {showRoleSelection && session?.user && (
+          <RoleSelectionModal
+            userId={session.user.id}
+            onComplete={() => {
+              setShowRoleSelection(false);
+            }}
+          />
+        )}
       </div>
     </HashRouter>
   );

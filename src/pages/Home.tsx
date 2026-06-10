@@ -1344,6 +1344,16 @@ export const Home: React.FC<HomeProps> = ({ showSettings, setShowSettings }) => 
                   {myProfile?.nickname || '我'}
                 </span>
               </div>
+              {/* Role badge */}
+              {myProfile?.gender && (
+                <span className={`mt-1 text-[9px] font-extrabold px-2 py-0.5 rounded-full border shadow-sm animate-pulse ${
+                  myProfile.gender === 'prince'
+                    ? 'bg-purple-50 text-purple-600 border-purple-200'
+                    : 'bg-pink-50 text-pink-600 border-pink-200'
+                }`}>
+                  {myProfile.gender === 'prince' ? '👑 王子' : '👸 公主'}
+                </span>
+              )}
             </div>
 
             {/* Central heartbeat glowing heart */}
@@ -1394,6 +1404,16 @@ export const Home: React.FC<HomeProps> = ({ showSettings, setShowSettings }) => 
                   {partnerProfile?.nickname || 'Ta'}
                 </span>
               </div>
+              {/* Role badge */}
+              {partnerProfile?.gender && (
+                <span className={`mt-1 text-[9px] font-extrabold px-2 py-0.5 rounded-full border shadow-sm animate-pulse ${
+                  partnerProfile.gender === 'prince'
+                    ? 'bg-purple-50 text-purple-600 border-purple-200'
+                    : 'bg-pink-50 text-pink-600 border-pink-200'
+                }`}>
+                  {partnerProfile.gender === 'prince' ? '👑 王子' : '👸 公主'}
+                </span>
+              )}
             </Link>
           </div>
         </div>

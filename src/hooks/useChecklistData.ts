@@ -8,6 +8,7 @@ export interface DBChecklistItem {
   category: string;
   icon: string;
   is_preset: boolean;
+  is_priority: boolean;
   created_by?: string;
   created_at: string;
 }
@@ -600,6 +601,31 @@ export const useChecklistData = () => {
     }
   }, [currentUser, fetchItems, fetchLogs, showToast]);
 
+  const handleToggleItemPriority = useCallback(async (itemId: string, currentPriority: boolean, itemName: string) => {
+    if (!currentUser) return;
+    const nextPriority = !currentPriority;
+    try {
+      const { error } = await supabase
+        .from('love_checklist_items')
+        .update({ is_priority: nextPriority })
+        .eq('id', itemId);
+      if (error) throw error;
+
+      await supabase.from('love_checklist_logs').insert({
+        operator_id: currentUser.id,
+        action_type: 'update',
+        item_name: itemName,
+        details: `${nextPriority ? '标记了' : '取消了'}清单项 "${itemName}" 为重点推荐 ⭐️`,
+      });
+
+      showToast(nextPriority ? '已标记为星标重点 ⭐️' : '已取消星标');
+      fetchItems();
+      fetchLogs();
+    } catch (err: any) {
+      showToast('更新优先级失败: ' + err.message, 'error');
+    }
+  }, [currentUser, fetchItems, fetchLogs, showToast]);
+
   // Mutations: Completions (Check-in entries)
   const handleCompleteItem = useCallback(async (itemId: string, itemName: string, completedAt: string, notes: string, mediaFiles: File[]) => {
     if (!currentUser) return;
@@ -788,6 +814,7 @@ export const useChecklistData = () => {
     handleCreateItem,
     handleUpdateItem,
     handleDeleteItem,
+    handleToggleItemPriority,
     handleCompleteItem,
     handleEditCompletion,
     handleDeleteCompletion,
