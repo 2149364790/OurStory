@@ -5,6 +5,7 @@ import { AudioPlayer } from '../components/AudioPlayer';
 import { MessageSquare, Mic, Square, Trash2, Send, ChevronDown, ChevronUp, User, Clock, X, Lock, Edit2, RotateCcw, Sparkles, Mail, Plus, Calendar, Image as ImageIcon } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import imageCompression from 'browser-image-compression';
+import { DateTimePicker } from '../components/DateTimePicker';
 
 const monthsList = [
   '一月', '二月', '三月', '四月', '五月', '六月',
@@ -176,6 +177,205 @@ const EmptyEnvelopeIcon: React.FC<{ className?: string }> = ({ className = "w-12
             d="M50 54.5C50 54.5 45.5 51 45.5 47.8C45.5 45.8 46.8 44.5 48.5 44.5C49.5 44.5 50 45.2 50 45.2C50 45.2 50.5 44.5 51.5 44.5C53.2 44.5 54.5 45.8 54.5 47.8C54.5 51 50 54.5 50 54.5Z"
             fill="url(#heartGrad)"
           />
+        </g>
+      </svg>
+    </div>
+  );
+};
+
+// Beautiful custom vector voice microphone component
+const VoiceMicIcon: React.FC<{ className?: string }> = ({ className = "w-10 h-10" }) => {
+  return (
+    <div className={`relative ${className} flex items-center justify-center`}>
+      {/* Wave rings aura */}
+      <div className="absolute inset-0 bg-rose-400/20 rounded-full blur-md animate-pulse" />
+      <svg
+        className="w-full h-full relative z-10 filter drop-shadow-[0_4px_6px_rgba(244,63,94,0.15)] hover:scale-105 transition-transform duration-300"
+        viewBox="0 0 100 100"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <linearGradient id="micBody" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#fff1f2" />
+            <stop offset="50%" stopColor="#fecdd3" />
+            <stop offset="100%" stopColor="#f43f5e" />
+          </linearGradient>
+          <linearGradient id="micStand" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#fb7185" />
+            <stop offset="100%" stopColor="#be123c" />
+          </linearGradient>
+          <linearGradient id="micWave" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#fda4af" stopOpacity="0.1" />
+            <stop offset="50%" stopColor="#f43f5e" stopOpacity="0.6" />
+            <stop offset="100%" stopColor="#fda4af" stopOpacity="0.1" />
+          </linearGradient>
+        </defs>
+
+        {/* Pulse wave ring */}
+        <circle cx="50" cy="42" r="26" stroke="url(#micWave)" strokeWidth="1.5" className="animate-ping" style={{ transformOrigin: '50px 42px', animationDuration: '3s' }} />
+        <circle cx="50" cy="42" r="20" stroke="url(#micWave)" strokeWidth="1.5" className="animate-pulse" style={{ transformOrigin: '50px 42px' }} />
+
+        {/* Microphone capsule body */}
+        <rect x="38" y="16" width="24" height="34" rx="12" fill="url(#micBody)" stroke="#ffe4e6" strokeWidth="1.5" />
+        
+        {/* Cute grill lines */}
+        <line x1="38" y1="26" x2="62" y2="26" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" opacity="0.9" />
+        <line x1="38" y1="32" x2="62" y2="32" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" opacity="0.9" />
+        <line x1="38" y1="38" x2="62" y2="38" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" opacity="0.9" />
+        <line x1="50" y1="16" x2="50" y2="50" stroke="#ffffff" strokeWidth="1" opacity="0.4" />
+
+        {/* U-shaped holder */}
+        <path d="M30 36 V44 C30 55 39 62 50 62 C61 62 70 55 70 44 V36" stroke="url(#micStand)" strokeWidth="3.5" strokeLinecap="round" />
+
+        {/* Stand stem */}
+        <line x1="50" y1="62" x2="50" y2="78" stroke="url(#micStand)" strokeWidth="4" />
+
+        {/* Round base stand */}
+        <ellipse cx="50" cy="78" rx="16" ry="6" fill="url(#micStand)" stroke="#ffe4e6" strokeWidth="1" />
+      </svg>
+    </div>
+  );
+};
+
+// Beautiful custom sun vector icon
+const SunIcon: React.FC<{ className?: string }> = ({ className = "w-10 h-10" }) => {
+  return (
+    <div className={`relative ${className} flex items-center justify-center`}>
+      <div className="absolute inset-0 bg-amber-400/20 rounded-full blur-md animate-pulse" />
+      <svg
+        className="w-full h-full relative z-10 filter drop-shadow-[0_4px_6px_rgba(245,158,11,0.2)] animate-[spin_20s_linear_infinite]"
+        viewBox="0 0 100 100"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <linearGradient id="sunGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#fef08a" />
+            <stop offset="50%" stopColor="#f59e0b" />
+            <stop offset="100%" stopColor="#f43f5e" />
+          </linearGradient>
+        </defs>
+
+        {/* Sun Body */}
+        <circle cx="50" cy="50" r="22" fill="url(#sunGrad)" />
+
+        {/* Rounded sun rays */}
+        {Array.from({ length: 8 }).map((_, i) => {
+          const angle = (i * 45 * Math.PI) / 180;
+          const cos = Math.cos(angle);
+          const sin = Math.sin(angle);
+          const r1 = 28;
+          const r2 = 36;
+          const cx1 = 50 + r1 * cos;
+          const cy1 = 50 + r1 * sin;
+          const cx2 = 50 + r2 * cos;
+          const cy2 = 50 + r2 * sin;
+          return (
+            <line
+              key={i}
+              x1={cx1}
+              y1={cy1}
+              x2={cx2}
+              y2={cy2}
+              stroke="url(#sunGrad)"
+              strokeWidth="4.5"
+              strokeLinecap="round"
+            />
+          );
+        })}
+
+        {/* Cute heart in center of the sun */}
+        <path
+          d="M50 56C50 56 46 52 46 49 C46 47 47.5 45.5 49 45.5C50 45.5 50 46.5 50 46.5C50 46.5 50 45.5 51 45.5C52.5 45.5 54 47 54 49 C54 52 50 56 50 56Z"
+          fill="#ffffff"
+          opacity="0.95"
+        />
+      </svg>
+    </div>
+  );
+};
+
+// Beautiful custom rain cloud vector icon
+const RainCloudIcon: React.FC<{ className?: string }> = ({ className = "w-10 h-10" }) => {
+  return (
+    <div className={`relative ${className} flex items-center justify-center`}>
+      <div className="absolute inset-0 bg-blue-400/15 rounded-full blur-md" />
+      <svg
+        className="w-full h-full relative z-10 filter drop-shadow-[0_4px_6px_rgba(59,130,246,0.15)] hover:scale-105 transition-transform duration-300"
+        viewBox="0 0 100 100"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <linearGradient id="cloudGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#bfdbfe" />
+            <stop offset="60%" stopColor="#60a5fa" />
+            <stop offset="100%" stopColor="#fda4af" />
+          </linearGradient>
+          <linearGradient id="rainGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#f43f5e" />
+            <stop offset="100%" stopColor="#3b82f6" />
+          </linearGradient>
+        </defs>
+
+        {/* Cloud Body using circular overlaps for fluffiness */}
+        <path
+          d="M30 62C22.3 62 16 55.7 16 48C16 40.8 21.5 34.8 28.6 34.1C31.5 24.3 40.5 17 51 17C63.2 17 73.4 25.8 75.4 37.6C82.5 38.6 88 44.7 88 52C88 59.7 81.7 66 74 66H30V62Z"
+          fill="url(#cloudGrad)"
+        />
+
+        {/* Falling heart raindrops */}
+        <g className="animate-[sakura-fall_3s_linear_infinite]" style={{ transform: 'translate(4px, 12px) scale(0.6)' }}>
+          <path d="M30 65C30 65 27 62 27 59 C27 57 28 56 29.5 56C30.2 56 30.5 56.5 30.5 56.5C30.5 56.5 30.8 56 31.5 56C33 56 34 57 34 59 C34 62 30 65 30 65Z" fill="url(#rainGrad)" />
+        </g>
+        <g className="animate-[sakura-fall_2.5s_linear_infinite]" style={{ transform: 'translate(22px, 8px) scale(0.55)', animationDelay: '0.8s' }}>
+          <path d="M30 65C30 65 27 62 27 59 C27 57 28 56 29.5 56C30.2 56 30.5 56.5 30.5 56.5C30.5 56.5 30.8 56 31.5 56C33 56 34 57 34 59 C34 62 30 65 30 65Z" fill="url(#rainGrad)" />
+        </g>
+        <g className="animate-[sakura-fall_2.8s_linear_infinite]" style={{ transform: 'translate(40px, 14px) scale(0.65)', animationDelay: '0.4s' }}>
+          <path d="M30 65C30 65 27 62 27 59 C27 57 28 56 29.5 56C30.2 56 30.5 56.5 30.5 56.5C30.5 56.5 30.8 56 31.5 56C33 56 34 57 34 59 C34 62 30 65 30 65Z" fill="url(#rainGrad)" />
+        </g>
+      </svg>
+    </div>
+  );
+};
+
+// Beautiful custom wind breeze vector icon
+const WindBreezeIcon: React.FC<{ className?: string }> = ({ className = "w-10 h-10" }) => {
+  return (
+    <div className={`relative ${className} flex items-center justify-center`}>
+      <div className="absolute inset-0 bg-emerald-400/10 rounded-full blur-md" />
+      <svg
+        className="w-full h-full relative z-10 filter drop-shadow-[0_4px_6px_rgba(16,185,129,0.12)] hover:scale-105 transition-transform duration-300"
+        viewBox="0 0 100 100"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <linearGradient id="leafGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#a7f3d0" />
+            <stop offset="60%" stopColor="#10b981" />
+            <stop offset="100%" stopColor="#ffb3c1" />
+          </linearGradient>
+          <linearGradient id="breezeLine" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#10b981" stopOpacity="0.1" />
+            <stop offset="50%" stopColor="#ff85a1" stopOpacity="0.7" />
+            <stop offset="100%" stopColor="#10b981" stopOpacity="0.1" />
+          </linearGradient>
+        </defs>
+
+        {/* Swirling wind lines */}
+        <path d="M14 42C30 42 35 28 55 28C75 28 80 44 90 44" stroke="url(#breezeLine)" strokeWidth="2.5" strokeLinecap="round" />
+        <path d="M10 58C24 58 30 68 50 68C70 68 76 50 86 50" stroke="url(#breezeLine)" strokeWidth="2" strokeLinecap="round" />
+
+        {/* Cute leaves swaying */}
+        <g className="animate-[float-left_4s_ease-in-out_infinite]" style={{ transformOrigin: '40px 36px' }}>
+          {/* Leaf 1 */}
+          <path d="M40 36C40 36 34 26 44 22C48 28 40 36 40 36Z" fill="url(#leafGrad)" stroke="#a7f3d0" strokeWidth="1" />
+        </g>
+        <g className="animate-[float-right_5s_ease-in-out_infinite]" style={{ transformOrigin: '62px 54px' }}>
+          {/* Leaf 2 (slightly smaller, rotated) */}
+          <path d="M62 54C62 54 68 46 58 42C54 48 62 54 62 54Z" fill="url(#leafGrad)" stroke="#a7f3d0" strokeWidth="1" />
         </g>
       </svg>
     </div>
@@ -1236,11 +1436,13 @@ export const Whispers: React.FC = () => {
                 <div className="space-y-3 pt-2 border-t border-rose-100/40 animate-slide-up">
                   <div>
                     <label className="block text-[10px] font-semibold text-rose-600 mb-1">何时才能解锁阅读？</label>
-                    <input
-                      type="datetime-local"
+                    <DateTimePicker
+                      type="datetime"
                       value={lockTime}
-                      onChange={(e) => setLockTime(e.target.value)}
-                      className="w-full px-3 py-2 text-xs border border-rose-100 rounded-xl focus:outline-none focus:ring-1 focus:ring-rose-400 text-rose-800 bg-white"
+                      onChange={setLockTime}
+                      placeholder="选择解锁时间"
+                      placement="top"
+                      align="right"
                     />
                   </div>
                   <div>
@@ -1341,6 +1543,14 @@ export const Whispers: React.FC = () => {
               <div className="p-2.5 rounded-2xl bg-white/60 border border-white/80 shadow-inner flex items-center justify-center shrink-0 w-14 h-14">
                 {weather.icon === '💌' ? (
                   <LoveLetterIcon className="w-9 h-9" />
+                ) : weather.icon === '🎙️' ? (
+                  <VoiceMicIcon className="w-9 h-9" />
+                ) : weather.icon === '☀️' ? (
+                  <SunIcon className="w-9 h-9" />
+                ) : weather.icon === '🌧️' ? (
+                  <RainCloudIcon className="w-9 h-9" />
+                ) : weather.icon === '🍃' ? (
+                  <WindBreezeIcon className="w-9 h-9" />
                 ) : (
                   <span className="text-3xl">{weather.icon}</span>
                 )}

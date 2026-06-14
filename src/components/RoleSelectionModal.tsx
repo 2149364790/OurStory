@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import confetti from 'canvas-confetti';
+import { PrinceCrownIcon, PrincessTiaraIcon } from './RoleBadge';
 
 interface RoleSelectionModalProps {
   userId: string;
@@ -107,7 +108,7 @@ export const RoleSelectionModal: React.FC<RoleSelectionModalProps> = ({ userId, 
                     : 'bg-gradient-to-br from-blue-400/40 to-purple-500/40 border-2 border-white/10 hover:border-purple-300/50 hover:scale-[1.03]'
                 }`}
               >
-                <span className="text-6xl animate-[swing_3s_ease-in-out_infinite]">👑</span>
+                <PrinceCrownIcon className="w-16 h-16 animate-[swing_3s_ease-in-out_infinite] filter drop-shadow-[0_4px_8px_rgba(167,139,250,0.6)]" />
                 <span className="text-lg font-extrabold text-white tracking-wider">王子</span>
                 {selectedRole === 'prince' && (
                   <span className="text-xs text-purple-200 font-bold animate-pulse">已选中 ✨</span>
@@ -124,7 +125,7 @@ export const RoleSelectionModal: React.FC<RoleSelectionModalProps> = ({ userId, 
                     : 'bg-gradient-to-br from-pink-400/40 to-rose-500/40 border-2 border-white/10 hover:border-pink-300/50 hover:scale-[1.03]'
                 }`}
               >
-                <span className="text-6xl animate-[swing_3s_ease-in-out_infinite_0.5s]">👸</span>
+                <PrincessTiaraIcon className="w-16 h-16 animate-[swing_3s_ease-in-out_infinite_0.5s] filter drop-shadow-[0_4px_8px_rgba(244,114,182,0.6)]" />
                 <span className="text-lg font-extrabold text-white tracking-wider">公主</span>
                 {selectedRole === 'princess' && (
                   <span className="text-xs text-pink-200 font-bold animate-pulse">已选中 ✨</span>
@@ -139,19 +140,35 @@ export const RoleSelectionModal: React.FC<RoleSelectionModalProps> = ({ userId, 
                   type="button"
                   onClick={handleConfirm}
                   disabled={saving}
-                  className="w-full py-4 rounded-2xl bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 text-white font-extrabold text-base tracking-wide transition-all duration-300 active:scale-95 disabled:opacity-50 shadow-lg"
+                  className="w-full py-4 rounded-2xl bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 text-white font-extrabold text-base tracking-wide transition-all duration-300 active:scale-95 disabled:opacity-50 shadow-lg flex items-center justify-center"
                 >
-                  {saving ? '正在记录...' : `确认选择 ${selectedRole === 'prince' ? '👑 王子' : '👸 公主'}`}
+                  {saving ? (
+                    '正在记录...'
+                  ) : (
+                    <div className="flex items-center justify-center space-x-2">
+                      <span>确认选择</span>
+                      {selectedRole === 'prince' ? (
+                        <PrinceCrownIcon className="w-5 h-5 filter drop-shadow-[0_1px_2px_rgba(167,139,250,0.5)]" />
+                      ) : (
+                        <PrincessTiaraIcon className="w-5 h-5 filter drop-shadow-[0_1px_2px_rgba(244,114,182,0.5)]" />
+                      )}
+                      <span>{selectedRole === 'prince' ? '王子' : '公主'}</span>
+                    </div>
+                  )}
                 </button>
               </div>
             )}
           </>
         ) : (
           /* Confirmed celebration screen */
-          <div className="text-center space-y-4 animate-slide-up">
-            <span className="text-7xl block animate-bounce">
-              {selectedRole === 'prince' ? '👑' : '👸'}
-            </span>
+          <div className="text-center space-y-4 animate-slide-up flex flex-col items-center">
+            <div className="animate-bounce">
+              {selectedRole === 'prince' ? (
+                <PrinceCrownIcon className="w-20 h-20 filter drop-shadow-[0_4px_12px_rgba(167,139,250,0.7)]" />
+              ) : (
+                <PrincessTiaraIcon className="w-20 h-20 filter drop-shadow-[0_4px_12px_rgba(244,114,182,0.7)]" />
+              )}
+            </div>
             <h2 className="text-2xl font-extrabold text-white">
               欢迎，{selectedRole === 'prince' ? '王子' : '公主'}！
             </h2>

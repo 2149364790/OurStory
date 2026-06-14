@@ -2,60 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { ListTodo, CheckCircle2, Circle, Calendar, Edit3, X, Sparkles, Trash2, Heart, Plus, FileText, ChevronLeft, ChevronRight, Settings, Image, Star } from 'lucide-react';
 import { TimeMachineModal } from '../components/TimeMachineModal';
+import { DateTimePicker } from '../components/DateTimePicker';
 import { 
   useChecklistData 
 } from '../hooks/useChecklistData';
 import type { DBChecklistItem, CompletionItem, DBCategoryItem } from '../hooks/useChecklistData';
-
-// Calendar Date Picker Helpers
-const getDaysInMonth = (year: number, month: number) => {
-  const firstDayIndex = new Date(year, month, 1).getDay();
-  const totalDays = new Date(year, month + 1, 0).getDate();
-  const prevMonthTotalDays = new Date(year, month, 0).getDate();
-  
-  const days = [];
-  
-  // Prev month days padding
-  for (let i = firstDayIndex - 1; i >= 0; i--) {
-    days.push({
-      day: prevMonthTotalDays - i,
-      isCurrentMonth: false,
-      monthOffset: -1,
-    });
-  }
-  
-  // Current month days
-  for (let i = 1; i <= totalDays; i++) {
-    days.push({
-      day: i,
-      isCurrentMonth: true,
-      monthOffset: 0,
-    });
-  }
-  
-  // Next month days padding to 42 cells
-  const remainingCells = 42 - days.length;
-  for (let i = 1; i <= remainingCells; i++) {
-    days.push({
-      day: i,
-      isCurrentMonth: false,
-      monthOffset: 1,
-    });
-  }
-  
-  return days;
-};
-
-const yearsList: number[] = [];
-const currY = new Date().getFullYear();
-for (let y = currY + 1; y >= 2000; y--) {
-  yearsList.push(y);
-}
-
-const monthsList = [
-  '一月', '二月', '三月', '四月', '五月', '六月',
-  '七月', '八月', '九月', '十月', '十一月', '十二月'
-];
 
 const getStoragePathFromUrl = (url: string): string => {
   const matchStr = '/storage/v1/object/public/media/';
@@ -112,9 +63,6 @@ export const Checklist: React.FC = () => {
   const [activeItem, setActiveItem] = useState<DBChecklistItem | null>(null);
   const [modalDate, setModalDate] = useState('');
   const [modalNotes, setModalNotes] = useState('');
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [calendarYear, setCalendarYear] = useState(new Date().getFullYear());
-  const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth());
   const [createDropOpen, setCreateDropOpen] = useState(false);
   const [editDropOpen, setEditDropOpen] = useState(false);
 
@@ -319,7 +267,6 @@ export const Checklist: React.FC = () => {
     const itemComps = completions.filter((c) => c.item_id === item.id);
     const sortedComps = [...itemComps].sort((a, b) => b.completed_at.localeCompare(a.completed_at));
     const latestComp = sortedComps[0];
-    const dateToParse = latestComp ? latestComp.completed_at : new Date().toISOString().split('T')[0];
     
     if (latestComp) {
       setModalDate(latestComp.completed_at);
@@ -332,12 +279,6 @@ export const Checklist: React.FC = () => {
       setModalNotes('');
     }
 
-    const parts = dateToParse.split('-');
-    if (parts.length === 3) {
-      setCalendarYear(parseInt(parts[0], 10));
-      setCalendarMonth(parseInt(parts[1], 10) - 1);
-    }
-    setShowDatePicker(false);
     setEditDropOpen(false);
     setEditingCompId(null);
     setShowAgainForm(false);
@@ -1004,11 +945,12 @@ export const Checklist: React.FC = () => {
                             <div className="space-y-2 w-full p-2 bg-rose-50/50 rounded-xl border border-rose-100/50">
                               <div>
                                 <label className="block text-[8px] font-bold text-rose-700 mb-0.5">打卡日期</label>
-                                <input
+                                <DateTimePicker
                                   type="date"
                                   value={editingCompDate}
-                                  onChange={(e) => setEditingCompDate(e.target.value)}
-                                  className="w-full px-2 py-1 text-[10px] border border-rose-100 rounded-lg text-rose-800 bg-white"
+                                  onChange={setEditingCompDate}
+                                  placeholder="选择日期"
+                                  clearable={false}
                                 />
                               </div>
                               <div>
@@ -1209,119 +1151,14 @@ export const Checklist: React.FC = () => {
                     <Calendar size={8} className="mr-1" />
                     打卡纪念日
                   </label>
-                  <div className="relative">
-                    <button
-                      type="button"
+                    <DateTimePicker
+                      type="date"
+                      value={modalDate}
+                      onChange={setModalDate}
                       disabled={checklistUploading}
-                      onClick={() => setShowDatePicker(!showDatePicker)}
-                      className="w-full px-3 py-2 text-left text-xs border border-rose-100 rounded-xl focus:outline-none focus:ring-1 focus:ring-rose-400 text-rose-800 bg-white flex items-center justify-between font-bold disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      <span>{modalDate.replace(/-/g, '/')}</span>
-                      <Calendar size={12} className="text-rose-400" />
-                    </button>
-
-                    {showDatePicker && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-rose-100 rounded-2xl p-3 shadow-xl z-50 animate-slide-up">
-                        {/* Calendar Header */}
-                        <div className="flex justify-between items-center mb-2.5">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (calendarMonth === 0) {
-                                setCalendarMonth(11);
-                                setCalendarYear(calendarYear - 1);
-                              } else {
-                                setCalendarMonth(calendarMonth - 1);
-                              }
-                            }}
-                            className="p-1 hover:bg-rose-50 rounded-lg text-rose-500 transition"
-                          >
-                            <ChevronLeft size={13} />
-                          </button>
-                          
-                          <div className="flex space-x-1">
-                            <select
-                              value={calendarYear}
-                              onChange={(e) => setCalendarYear(parseInt(e.target.value, 10))}
-                              className="text-[10px] font-bold text-rose-800 bg-white border border-rose-100 rounded-lg px-1.5 py-0.5 focus:outline-none cursor-pointer"
-                            >
-                              {yearsList.map(y => (
-                                <option key={y} value={y}>{y}年</option>
-                              ))}
-                            </select>
-                            <select
-                              value={calendarMonth}
-                              onChange={(e) => setCalendarMonth(parseInt(e.target.value, 10))}
-                              className="text-[10px] font-bold text-rose-800 bg-white border border-rose-100 rounded-lg px-1.5 py-0.5 focus:outline-none cursor-pointer"
-                            >
-                              {monthsList.map((m, idx) => (
-                                <option key={idx} value={idx}>{m}</option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (calendarMonth === 11) {
-                                setCalendarMonth(0);
-                                setCalendarYear(calendarYear + 1);
-                              } else {
-                                setCalendarMonth(calendarMonth + 1);
-                              }
-                            }}
-                            className="p-1 hover:bg-rose-50 rounded-lg text-rose-500 transition"
-                          >
-                            <ChevronRight size={13} />
-                          </button>
-                        </div>
-
-                        {/* Calendar Week Labels */}
-                        <div className="grid grid-cols-7 gap-0.5 text-center text-[9px] font-bold text-rose-400 mb-1">
-                          {['日', '一', '二', '三', '四', '五', '六'].map(w => (
-                            <div key={w} className="py-0.5">{w}</div>
-                          ))}
-                        </div>
-
-                        {/* Calendar Days Grid */}
-                        <div className="grid grid-cols-7 gap-0.5">
-                          {getDaysInMonth(calendarYear, calendarMonth).map((item, idx) => {
-                            let targetYear = calendarYear;
-                            let targetMonth = calendarMonth + item.monthOffset;
-                            if (targetMonth < 0) {
-                              targetMonth = 11;
-                              targetYear -= 1;
-                            } else if (targetMonth > 11) {
-                              targetMonth = 0;
-                              targetYear += 1;
-                            }
-                            const dayStr = `${targetYear}-${(targetMonth + 1).toString().padStart(2, '0')}-${item.day.toString().padStart(2, '0')}`;
-                            const isSelected = modalDate === dayStr;
-                            
-                            return (
-                              <button
-                                key={idx}
-                                type="button"
-                                onClick={() => {
-                                  setModalDate(dayStr);
-                                  setShowDatePicker(false);
-                                }}
-                                className={`py-1 text-[10px] rounded-lg font-bold transition ${
-                                  isSelected
-                                    ? 'bg-rose-500 text-white shadow-xs'
-                                    : item.isCurrentMonth
-                                      ? 'text-rose-800 hover:bg-rose-50'
-                                      : 'text-rose-300 hover:bg-rose-50/50'
-                                }`}
-                              >
-                                {item.day}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                      placeholder="选择打卡日期"
+                      clearable={false}
+                    />
                 </div>
 
                 <div>

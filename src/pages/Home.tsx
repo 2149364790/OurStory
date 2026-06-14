@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { Heart, Settings, User, Calendar, LogOut, Image, ChevronLeft, ChevronRight, Bell, Sparkles, Plus, Trash2, X, Eye, EyeOff, Lock } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { RoleBadge } from '../components/RoleBadge';
 
 
 // Helper to spawn a floating heart on the screen
@@ -1324,7 +1325,7 @@ export const Home: React.FC<HomeProps> = ({ showSettings, setShowSettings }) => 
           <div className="flex items-center space-x-[-20px] relative z-10">
             {/* Me avatar */}
             <div 
-              className="relative group/avatar block hover:scale-105 transition-all duration-300"
+              className="relative group/avatar flex flex-col items-center hover:scale-105 transition-all duration-300"
             >
               {/* Speech Bubble */}
               <div className="absolute -top-11 left-1/2 transform -translate-x-1/2 bg-white/95 backdrop-blur-xs border border-rose-100 text-[10px] font-extrabold text-rose-600 px-2.5 py-1 rounded-full shadow-md opacity-0 group-hover:opacity-100 group-hover:-translate-y-1.5 transition-all duration-500 select-none whitespace-nowrap pointer-events-none z-30 animate-bubble-float">
@@ -1346,13 +1347,7 @@ export const Home: React.FC<HomeProps> = ({ showSettings, setShowSettings }) => 
               </div>
               {/* Role badge */}
               {myProfile?.gender && (
-                <span className={`mt-1 text-[9px] font-extrabold px-2 py-0.5 rounded-full border shadow-sm animate-pulse ${
-                  myProfile.gender === 'prince'
-                    ? 'bg-purple-50 text-purple-600 border-purple-200'
-                    : 'bg-pink-50 text-pink-600 border-pink-200'
-                }`}>
-                  {myProfile.gender === 'prince' ? '👑 王子' : '👸 公主'}
-                </span>
+                <RoleBadge gender={myProfile.gender as 'prince' | 'princess'} />
               )}
             </div>
 
@@ -1378,7 +1373,7 @@ export const Home: React.FC<HomeProps> = ({ showSettings, setShowSettings }) => 
             {/* Partner avatar */}
             <Link 
               to="/wiki" 
-              className="relative group/avatar cursor-pointer block hover:scale-105 transition-all duration-300"
+              className="relative group/avatar cursor-pointer flex flex-col items-center hover:scale-105 transition-all duration-300"
               title="点击查看伴侣百科"
             >
               {/* Animated Bouncing Wiki entry indicator badge */}
@@ -1406,13 +1401,7 @@ export const Home: React.FC<HomeProps> = ({ showSettings, setShowSettings }) => 
               </div>
               {/* Role badge */}
               {partnerProfile?.gender && (
-                <span className={`mt-1 text-[9px] font-extrabold px-2 py-0.5 rounded-full border shadow-sm animate-pulse ${
-                  partnerProfile.gender === 'prince'
-                    ? 'bg-purple-50 text-purple-600 border-purple-200'
-                    : 'bg-pink-50 text-pink-600 border-pink-200'
-                }`}>
-                  {partnerProfile.gender === 'prince' ? '👑 王子' : '👸 公主'}
-                </span>
+                <RoleBadge gender={partnerProfile.gender as 'prince' | 'princess'} />
               )}
             </Link>
           </div>
