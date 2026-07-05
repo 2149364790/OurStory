@@ -1,9 +1,13 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import { Heart, Settings, User, Calendar, LogOut, Image, ChevronLeft, ChevronRight, Bell, Sparkles, Plus, Trash2, X, Eye, EyeOff, Lock } from 'lucide-react';
+import { Heart, Settings, User, Calendar, LogOut, Image, ChevronLeft, ChevronRight, Bell, Sparkles, Plus, Trash2, X, Eye, EyeOff, Lock, Flame } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { RoleBadge } from '../components/RoleBadge';
+import { PeriodRadar } from '../components/PeriodRadar';
+import { MoodJournal } from '../components/MoodJournal';
+import { WifeSpoilingScroll } from '../components/WifeSpoilingScroll';
+
 
 
 // Helper to spawn a floating heart on the screen
@@ -240,6 +244,7 @@ export const Home: React.FC<HomeProps> = ({ showSettings, setShowSettings }) => 
 
   const [checklistTotal, setChecklistTotal] = useState(104);
   const [latestChecklistItem, setLatestChecklistItem] = useState<any>(null);
+  const [contractStatus, setContractStatus] = useState<any>(null);
 
   // Push Notification States
   const [notificationEnabled, setNotificationEnabled] = useState(false);
@@ -673,12 +678,24 @@ export const Home: React.FC<HomeProps> = ({ showSettings, setShowSettings }) => 
       )
       .subscribe();
 
+    const contractChannel = supabase
+      .channel('public:love_contract_home')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'love_contract' },
+        () => {
+          fetchContractStatus();
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(configChannel);
       supabase.removeChannel(profileChannel);
       supabase.removeChannel(interactionChannel);
       supabase.removeChannel(checklistChannel);
       supabase.removeChannel(reviewChannel);
+      supabase.removeChannel(contractChannel);
     };
   }, []);
 
@@ -748,6 +765,22 @@ export const Home: React.FC<HomeProps> = ({ showSettings, setShowSettings }) => 
     fetchConfig();
     fetchChecklistData();
     fetchLatestReview();
+    fetchContractStatus();
+  };
+
+  const fetchContractStatus = async () => {
+    try {
+      const { data } = await supabase
+        .from('love_contract')
+        .select('*')
+        .eq('id', '00000000-0000-0000-0000-000000000000')
+        .maybeSingle();
+      if (data) {
+        setContractStatus(data);
+      }
+    } catch (err) {
+      console.error('Error fetching contract status on Home:', err);
+    }
   };
 
   const fetchChecklistData = async () => {
@@ -1146,6 +1179,7 @@ export const Home: React.FC<HomeProps> = ({ showSettings, setShowSettings }) => 
 
   return (
     <div className="relative px-4">
+      {myProfile?.gender === 'prince' && <WifeSpoilingScroll />}
       {/* Top Header */}
       <div className="flex justify-between items-center py-4 max-w-md mx-auto">
         <button 
@@ -1504,6 +1538,45 @@ export const Home: React.FC<HomeProps> = ({ showSettings, setShowSettings }) => 
             <p className="text-[10px] text-rose-500/80">还没有开启打卡呢，快点击这里开始记录吧~</p>
           )}
         </Link>
+
+        {/* 不分手合约 Glassmorphic Neon Entrance Card */}
+        <Link 
+          to="/contract"
+          className="relative p-[1.5px] rounded-3xl overflow-hidden shadow-xs hover:shadow-md hover:scale-[1.02] transition-all duration-300 block select-none group"
+        >
+          {/* Animated flowing border if signed, else solid subtle glow */}
+          <div className={`absolute inset-[-100%] bg-gradient-to-r ${contractStatus?.status === 'signed' ? 'from-rose-500 via-pink-500 to-amber-400 animate-spin-slow' : 'from-rose-300/40 via-pink-300/40 to-rose-300/40'} opacity-75 pointer-events-none`} />
+          
+          <div className="relative glass-panel rounded-3xl p-5 bg-white/55 backdrop-blur-md flex justify-between items-center border border-white/40">
+            <div className="space-y-1 text-left">
+              <h3 className="text-sm font-bold text-rose-800 flex items-center">
+                <Flame size={15} className="mr-1.5 text-rose-500" fill={contractStatus?.status === 'signed' ? 'currentColor' : 'none'} />
+                {contractStatus?.status === 'signed' ? '永恒不分手契约 💖' : '不分手契约 📜'}
+              </h3>
+              <p className="text-[10px] text-rose-600/80 leading-normal font-semibold">
+                {contractStatus?.status === 'signed' ? (
+                  <span>🔒 契约已生效，终身不分手保障中</span>
+                ) : contractStatus?.groom_signature || contractStatus?.bride_signature ? (
+                  <span>⏳ 签约中：已有伴侣完成签署，等待锁定</span>
+                ) : (
+                  <span>✍️ 暂未签约：签署一辈子的爱情合同</span>
+                )}
+              </p>
+            </div>
+            
+            <div className="flex items-center space-x-1.5 text-[10px] font-bold text-rose-700 bg-white/30 px-3 py-1.5 rounded-2xl border border-white/40 shadow-inner">
+              {contractStatus?.status === 'signed' ? '查看证书 ➔' : '立即签署 ➔'}
+            </div>
+          </div>
+        </Link>
+
+        {/* Girlfriend Period Radar (Prince only) */}
+        <PeriodRadar currentUser={currentUser} profiles={profiles} />
+
+        {/* Mood Journal & Diary Hand Ledger (All roles) */}
+        <MoodJournal />
+
+
 
         {/* Config Settings Drawer Modal */}
         {showSettings && (

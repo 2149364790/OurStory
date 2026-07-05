@@ -611,6 +611,29 @@ export const Whispers: React.FC = () => {
     }
   }, [audioBlob]);
 
+  // Automatically mark all incoming whispers as read when the user is viewing the whispers tab
+  useEffect(() => {
+    if (activeTab === 'whispers' && currentUser && whispers.length > 0) {
+      const unreadWhispers = whispers.filter(
+        (w) => w.sender_id !== currentUser.id && !w.is_read
+      );
+      if (unreadWhispers.length > 0) {
+        const unreadIds = unreadWhispers.map((w) => w.id);
+        supabase
+          .from('whispers')
+          .update({ is_read: true })
+          .in('id', unreadIds)
+          .then(({ error }) => {
+            if (error) {
+              console.error('Error marking all whispers as read:', error);
+            } else {
+              fetchWhispers();
+            }
+          });
+      }
+    }
+  }, [activeTab, whispers, currentUser]);
+
   const fetchProfiles = async () => {
     const { data } = await supabase.from('profiles').select('*');
     if (data) setProfiles(data);
@@ -953,6 +976,10 @@ export const Whispers: React.FC = () => {
       // Reset states
       if (parentId) {
         setReplyContent((prev) => ({ ...prev, [parentId]: '' }));
+        const textarea = document.getElementById(`reply-input-${parentId}`);
+        if (textarea) {
+          textarea.style.height = 'auto';
+        }
       } else {
         setNewContent('');
         setSelectedMood(null);
@@ -1955,17 +1982,28 @@ export const Whispers: React.FC = () => {
                         onSubmit={(e) => handlePostWhisper(e, thread.id)}
                         className="flex items-center space-x-2 pt-2 border-t border-rose-50/50"
                       >
-                        <input
-                          type="text"
+                        <textarea
+                          id={`reply-input-${thread.id}`}
                           value={replyContent[thread.id] || ''}
-                          onChange={(e) =>
+                          rows={1}
+                          onChange={(e) => {
+                            e.target.style.height = 'auto';
+                            e.target.style.height = `${Math.min(e.target.scrollHeight, 100)}px`;
                             setReplyContent((prev) => ({
                               ...prev,
                               [thread.id]: e.target.value,
-                            }))
-                          }
+                            }));
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              if (replyContent[thread.id]?.trim() && !loading) {
+                                handlePostWhisper(e as any, thread.id);
+                              }
+                            }
+                          }}
                           placeholder="写下你的回应/解答..."
-                          className="flex-grow px-3 py-2 border border-rose-100 text-xs rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 text-rose-800 bg-white"
+                          className="flex-grow px-3 py-2 border border-rose-100 text-xs rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-400 text-rose-800 bg-white resize-none max-h-24 min-h-[34px] overflow-y-auto leading-normal align-bottom py-2"
                         />
                         <button
                           type="submit"

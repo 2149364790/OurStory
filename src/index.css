@@ -576,4 +576,48 @@ body {
   transform: rotate(0deg) scale(1.02);
 }
 
+/* Ancient Scroll Modal Opening Animation */
+@keyframes scroll-open {
+  0% {
+    transform: scaleY(0.01) scaleX(0.9);
+    opacity: 0;
+  }
+  40% {
+    transform: scaleY(0.01) scaleX(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scaleY(1) scaleX(1);
+    opacity: 1;
+  }
+}
+.animate-scroll-open {
+  animation: scroll-open 0.6s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+  transform-origin: center top;
+}
+
+/* Daily checkin self-reflection heart particle animation */
+@keyframes checkin-particle {
+  0% {
+    transform: translate(0, 0) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--tx), var(--ty)) scale(0) rotate(180deg);
+    opacity: 0;
+  }
+}
+.animate-checkin-particle {
+  animation: checkin-particle 1.2s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+}
+
+@keyframes pulse-slow {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+.animate-pulse-slow {
+  animation: pulse-slow 3s ease-in-out infinite;
+}
+
+
 

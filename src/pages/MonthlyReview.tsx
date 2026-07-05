@@ -169,6 +169,8 @@ export const MonthlyReview: React.FC = () => {
   const [selectedDay, setSelectedDay] = useState(new Date().getDate());
   const [selectedHour, setSelectedHour] = useState(20);
   const [selectedMinute, setSelectedMinute] = useState(0);
+  const [showHourDropdown, setShowHourDropdown] = useState(false);
+  const [showMinuteDropdown, setShowMinuteDropdown] = useState(false);
 
   // Daily logs states
   const [communicationLogs, setCommunicationLogs] = useState<CommunicationLog[]>([]);
@@ -255,149 +257,6 @@ export const MonthlyReview: React.FC = () => {
           </span>
           <span className="text-[9px] text-rose-500 font-extrabold bg-rose-50 px-2 py-0.5 rounded-md border border-rose-100/30 flex items-center gap-0.5"><Calendar size={9} />选择时间</span>
         </button>
-
-        {showDatePicker && (
-          <>
-            <div className="fixed inset-0 z-40 bg-black/10 backdrop-blur-[1px]" onClick={() => setShowDatePicker(false)} />
-            <div className="fixed bottom-[72px] left-4 right-4 md:absolute md:top-full md:bottom-auto md:left-0 md:right-0 mt-1 bg-white border border-rose-100 rounded-2xl p-4 shadow-xl z-50 animate-slide-up space-y-3 max-h-[60vh] overflow-y-auto">
-              {/* Calendar Header */}
-              <div className="flex justify-between items-center pb-2 border-b border-rose-50/50">
-                <button
-                  type="button"
-                  onClick={() => {
-                    let newMonth = calendarMonth - 1;
-                    let newYear = calendarYear;
-                    if (newMonth < 0) {
-                      newMonth = 11;
-                      newYear -= 1;
-                    }
-                    setCalendarMonth(newMonth);
-                    setCalendarYear(newYear);
-                  }}
-                  className="p-1.5 hover:bg-rose-50 rounded-lg text-rose-500 text-[10px] font-bold"
-                >
-                  ◀
-                </button>
-                <div className="flex space-x-1">
-                  <span className="text-xs font-black text-rose-800">{calendarYear}年 {monthsList[calendarMonth]}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    let newMonth = calendarMonth + 1;
-                    let newYear = calendarYear;
-                    if (newMonth > 11) {
-                      newMonth = 0;
-                      newYear += 1;
-                    }
-                    setCalendarMonth(newMonth);
-                    setCalendarYear(newYear);
-                  }}
-                  className="p-1.5 hover:bg-rose-50 rounded-lg text-rose-500 text-[10px] font-bold"
-                >
-                  ▶
-                </button>
-              </div>
-
-              {/* Week labels */}
-              <div className="grid grid-cols-7 gap-1 text-center text-[9px] font-black text-rose-400/80">
-                {['日', '一', '二', '三', '四', '五', '六'].map(w => (
-                  <div key={w}>{w}</div>
-                ))}
-              </div>
-
-              {/* Days Grid */}
-              <div className="grid grid-cols-7 gap-1">
-                {getDaysInMonth(calendarYear, calendarMonth).map((item, idx) => {
-                  let targetYear = calendarYear;
-                  let targetMonth = calendarMonth + item.monthOffset;
-                  if (targetMonth < 0) {
-                    targetMonth = 11;
-                    targetYear -= 1;
-                  } else if (targetMonth > 11) {
-                    targetMonth = 0;
-                    targetYear += 1;
-                  }
-                  const isSelected = selectedDay === item.day && calendarMonth === targetMonth && calendarYear === targetYear;
-                  
-                  return (
-                    <button
-                      key={idx}
-                      type="button"
-                      disabled={!item.isCurrentMonth}
-                      onClick={() => {
-                        setSelectedDay(item.day);
-                        updateProposedDateInput(targetYear, targetMonth, item.day, selectedHour, selectedMinute);
-                      }}
-                      className={`py-1 text-[10px] rounded-lg font-bold transition ${
-                        isSelected
-                          ? 'bg-rose-500 text-white shadow-md shadow-rose-200'
-                          : item.isCurrentMonth
-                            ? 'text-rose-800 hover:bg-rose-50'
-                            : 'text-rose-300 opacity-0 pointer-events-none'
-                      }`}
-                    >
-                      {item.day}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Time Selectors */}
-              <div className="border-t border-rose-50/50 pt-2 flex flex-col space-y-1.5">
-                <span className="text-[9px] font-extrabold text-rose-800 flex items-center">
-                  <Clock size={10} className="mr-1 text-rose-500" />
-                  时间选择
-                </span>
-                
-                <div className="flex space-x-3 items-center">
-                  <div className="flex-1 space-y-0.5">
-                    <span className="text-[8px] font-bold text-rose-400 block text-center">小时</span>
-                    <select
-                      value={selectedHour}
-                      onChange={(e) => {
-                        const hour = parseInt(e.target.value, 10);
-                        setSelectedHour(hour);
-                        updateProposedDateInput(calendarYear, calendarMonth, selectedDay, hour, selectedMinute);
-                      }}
-                      className="w-full bg-rose-50/20 text-rose-800 border border-rose-100/50 rounded-xl py-1 px-1.5 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-rose-400"
-                    >
-                      {Array.from({ length: 24 }).map((_, h) => (
-                        <option key={h} value={h}>{String(h).padStart(2, '0')} 点</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex-1 space-y-0.5">
-                    <span className="text-[8px] font-bold text-rose-400 block text-center">分钟</span>
-                    <select
-                      value={selectedMinute}
-                      onChange={(e) => {
-                        const min = parseInt(e.target.value, 10);
-                        setSelectedMinute(min);
-                        updateProposedDateInput(calendarYear, calendarMonth, selectedDay, selectedHour, min);
-                      }}
-                      className="w-full bg-rose-50/20 text-rose-800 border border-rose-100/50 rounded-xl py-1 px-1.5 text-xs font-bold focus:outline-none focus:ring-1 focus:ring-rose-400"
-                    >
-                      {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => (
-                        <option key={m} value={m}>{String(m).padStart(2, '0')} 分</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Close Button */}
-              <button
-                type="button"
-                onClick={() => setShowDatePicker(false)}
-                className="w-full py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-extrabold rounded-xl text-[10px] transition active:scale-95 border border-rose-100/50"
-              >
-                确认选择
-              </button>
-            </div>
-          </>
-        )}
       </div>
     );
   };
@@ -1608,6 +1467,207 @@ export const MonthlyReview: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {showDatePicker && (
+        <React.Fragment>
+          <div className="fixed inset-0 z-[150] bg-black/35 backdrop-blur-[1.5px]" onClick={() => setShowDatePicker(false)} />
+          <div className="fixed top-1/2 -translate-y-1/2 left-4 right-4 max-w-sm mx-auto bg-white border border-rose-100 rounded-3xl p-5 shadow-2xl z-[160] animate-slide-up space-y-4 max-h-[85vh] overflow-y-auto">
+            {/* Calendar Header */}
+            <div className="flex justify-between items-center pb-2 border-b border-rose-50/50">
+              <button
+                type="button"
+                onClick={() => {
+                  let newMonth = calendarMonth - 1;
+                  let newYear = calendarYear;
+                  if (newMonth < 0) {
+                    newMonth = 11;
+                    newYear -= 1;
+                  }
+                  setCalendarMonth(newMonth);
+                  setCalendarYear(newYear);
+                }}
+                className="p-1.5 hover:bg-rose-50 rounded-lg text-rose-500 text-[10px] font-bold"
+              >
+                ◀
+              </button>
+              <div className="flex space-x-1">
+                <span className="text-xs font-black text-rose-800">{calendarYear}年 {monthsList[calendarMonth]}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  let newMonth = calendarMonth + 1;
+                  let newYear = calendarYear;
+                  if (newMonth > 11) {
+                    newMonth = 0;
+                    newYear += 1;
+                  }
+                  setCalendarMonth(newMonth);
+                  setCalendarYear(newYear);
+                }}
+                className="p-1.5 hover:bg-rose-50 rounded-lg text-rose-500 text-[10px] font-bold"
+              >
+                ▶
+              </button>
+            </div>
+
+            {/* Week labels */}
+            <div className="grid grid-cols-7 gap-1 text-center text-[9px] font-black text-rose-400/80">
+              {['日', '一', '二', '三', '四', '五', '六'].map(w => (
+                <div key={w}>{w}</div>
+              ))}
+            </div>
+
+            {/* Days Grid */}
+            <div className="grid grid-cols-7 gap-1">
+              {getDaysInMonth(calendarYear, calendarMonth).map((item, idx) => {
+                let targetYear = calendarYear;
+                let targetMonth = calendarMonth + item.monthOffset;
+                if (targetMonth < 0) {
+                  targetMonth = 11;
+                  targetYear -= 1;
+                } else if (targetMonth > 11) {
+                  targetMonth = 0;
+                  targetYear += 1;
+                }
+                const isSelected = selectedDay === item.day && calendarMonth === targetMonth && calendarYear === targetYear;
+                
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    disabled={!item.isCurrentMonth}
+                    onClick={() => {
+                      setSelectedDay(item.day);
+                      updateProposedDateInput(targetYear, targetMonth, item.day, selectedHour, selectedMinute);
+                    }}
+                    className={`py-1.5 text-[10px] rounded-lg font-bold transition ${
+                      isSelected
+                        ? 'bg-rose-500 text-white shadow-md shadow-rose-200'
+                        : item.isCurrentMonth
+                          ? 'text-rose-800 hover:bg-rose-50'
+                          : 'text-rose-300 opacity-0 pointer-events-none'
+                    }`}
+                  >
+                    {item.day}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Time Selectors */}
+            <div className="border-t border-rose-50/50 pt-2 flex flex-col space-y-1.5">
+              <span className="text-[9px] font-extrabold text-rose-800 flex items-center">
+                <Clock size={10} className="mr-1 text-rose-500" />
+                时间选择
+              </span>
+              
+              <div className="flex space-x-3 items-center">
+                {/* Hours Custom Dropdown */}
+                <div className="flex-1 space-y-1 relative">
+                  <span className="text-[8px] font-black text-rose-400 block text-center">小时</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowHourDropdown(!showHourDropdown);
+                      setShowMinuteDropdown(false);
+                    }}
+                    className="w-full flex items-center justify-between bg-rose-50/40 text-rose-800 border border-rose-100/40 rounded-xl py-1.5 px-3 text-xs font-bold focus:outline-none shadow-3xs"
+                  >
+                    <span>{String(selectedHour).padStart(2, '0')} 点</span>
+                    <span className="text-[7px] text-rose-400/80 transition-transform duration-300" style={{ transform: showHourDropdown ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+                  </button>
+                  
+                  {showHourDropdown && (
+                    <React.Fragment>
+                      <div className="fixed inset-0 z-[170]" onClick={() => setShowHourDropdown(false)} />
+                      <div className="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto z-[180] bg-white/95 backdrop-blur-md border border-rose-100 rounded-xl p-1 shadow-lg space-y-0.5 animate-bounce-in">
+                        {Array.from({ length: 24 }).map((_, h) => {
+                          const isSelected = selectedHour === h;
+                          return (
+                            <button
+                              key={h}
+                              type="button"
+                              onClick={() => {
+                                  setSelectedHour(h);
+                                  updateProposedDateInput(calendarYear, calendarMonth, selectedDay, h, selectedMinute);
+                                  setShowHourDropdown(false);
+                              }}
+                              className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition text-[10px] font-bold ${
+                                isSelected
+                                  ? 'bg-rose-50 text-rose-600'
+                                  : 'text-rose-800 hover:bg-rose-50/40'
+                              }`}
+                            >
+                              <span>{String(h).padStart(2, '0')} 点</span>
+                              {isSelected && <span className="text-rose-500 text-[8px]">♥</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </React.Fragment>
+                  )}
+                </div>
+
+                {/* Minutes Custom Dropdown */}
+                <div className="flex-1 space-y-1 relative">
+                  <span className="text-[8px] font-black text-rose-400 block text-center">分钟</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMinuteDropdown(!showMinuteDropdown);
+                      setShowHourDropdown(false);
+                    }}
+                    className="w-full flex items-center justify-between bg-rose-50/40 text-rose-800 border border-rose-100/40 rounded-xl py-1.5 px-3 text-xs font-bold focus:outline-none shadow-3xs"
+                  >
+                    <span>{String(selectedMinute).padStart(2, '0')} 分</span>
+                    <span className="text-[7px] text-rose-400/80 transition-transform duration-300" style={{ transform: showMinuteDropdown ? 'rotate(180deg)' : 'rotate(0deg)' }}>▼</span>
+                  </button>
+                  
+                  {showMinuteDropdown && (
+                    <React.Fragment>
+                      <div className="fixed inset-0 z-[170]" onClick={() => setShowMinuteDropdown(false)} />
+                      <div className="absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto z-[180] bg-white/95 backdrop-blur-md border border-rose-100 rounded-xl p-1 shadow-lg space-y-0.5 animate-bounce-in">
+                        {[0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55].map((m) => {
+                          const isSelected = selectedMinute === m;
+                          return (
+                            <button
+                              key={m}
+                              type="button"
+                              onClick={() => {
+                                setSelectedMinute(m);
+                                updateProposedDateInput(calendarYear, calendarMonth, selectedDay, selectedHour, m);
+                                setShowMinuteDropdown(false);
+                              }}
+                              className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left transition text-[10px] font-bold ${
+                                isSelected
+                                  ? 'bg-rose-50 text-rose-600'
+                                  : 'text-rose-800 hover:bg-rose-50/40'
+                              }`}
+                            >
+                              <span>{String(m).padStart(2, '0')} 分</span>
+                              {isSelected && <span className="text-rose-500 text-[8px]">♥</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </React.Fragment>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setShowDatePicker(false)}
+              className="w-full py-2.5 bg-rose-500 hover:bg-rose-600 text-white font-extrabold rounded-xl text-[10px] transition active:scale-95 border border-rose-500 shadow-md shadow-rose-200"
+            >
+              确认选择
+            </button>
+          </div>
+        </React.Fragment>
       )}
 
     </div>

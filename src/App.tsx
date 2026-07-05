@@ -8,6 +8,11 @@ import { Whispers } from './pages/Whispers';
 import { MonthlyReview } from './pages/MonthlyReview';
 import { Checklist } from './pages/Checklist';
 import { PartnerWiki } from './pages/PartnerWiki';
+import { MoodJournalPage } from './pages/MoodJournalPage';
+import { MoodDiaryEditorPage } from './pages/MoodDiaryEditorPage';
+import { PeriodPredict } from './pages/PeriodPredict';
+import { PeriodHistory } from './pages/PeriodHistory';
+import { Contract } from './pages/Contract';
 import { Navbar } from './components/Navbar';
 import { CustomModal } from './components/CustomModal';
 import { RoleSelectionModal } from './components/RoleSelectionModal';
@@ -711,6 +716,11 @@ export const App: React.FC = () => {
             <Route path="/whispers" element={<Whispers />} />
             <Route path="/review" element={<MonthlyReview />} />
             <Route path="/wiki" element={<PartnerWiki />} />
+            <Route path="/mood" element={<MoodJournalPage />} />
+            <Route path="/mood/edit" element={<MoodDiaryEditorPage />} />
+            <Route path="/period/predict" element={<PeriodPredict currentUser={session.user} profiles={profiles} />} />
+            <Route path="/period/history" element={<PeriodHistory currentUser={session.user} profiles={profiles} />} />
+            <Route path="/contract" element={<Contract />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>

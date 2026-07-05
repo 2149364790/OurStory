@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../supabaseClient';
-import { Plus, X, Image, Video, Calendar, Smile, User, Maximize2, Trash2, Heart, Clock, Send, Rocket, Sparkles, Gift } from 'lucide-react';
+import { Plus, X, Image, Video, Calendar, Smile, User, Maximize2, Trash2, Heart, Clock, Send, Rocket, Sparkles, Gift, ChevronLeft, ChevronRight } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 const spawnReactionParticle = (emoji: string) => {
@@ -50,8 +50,39 @@ export const Tasks: React.FC = () => {
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  // Zoomed media state
-  const [zoomedMedia, setZoomedMedia] = useState<string | null>(null);
+  // Zoomed media states for list and swipe navigation
+  const [zoomedMediaList, setZoomedMediaList] = useState<string[]>([]);
+  const [zoomedMediaIndex, setZoomedMediaIndex] = useState<number | null>(null);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+
+  const handleNextZoomedMedia = () => {
+    if (zoomedMediaIndex !== null && zoomedMediaList.length > 0) {
+      setZoomedMediaIndex((prev) => (prev !== null && prev < zoomedMediaList.length - 1 ? prev + 1 : 0));
+    }
+  };
+
+  const handlePrevZoomedMedia = () => {
+    if (zoomedMediaIndex !== null && zoomedMediaList.length > 0) {
+      setZoomedMediaIndex((prev) => (prev !== null && prev > 0 ? prev - 1 : zoomedMediaList.length - 1));
+    }
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX === null) return;
+    const touchEndX = e.changedTouches[0].clientX;
+    const diffX = touchStartX - touchEndX;
+
+    if (diffX > 50) {
+      handleNextZoomedMedia();
+    } else if (diffX < -50) {
+      handlePrevZoomedMedia();
+    }
+    setTouchStartX(null);
+  };
 
   // Custom DateTime Picker States
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -915,23 +946,22 @@ export const Tasks: React.FC = () => {
                       {task.media.map((url: string, index: number) => (
                         <div
                           key={index}
+                          onClick={() => {
+                            setZoomedMediaList(task.media || []);
+                            setZoomedMediaIndex(index);
+                          }}
                           className="relative aspect-square rounded-xl overflow-hidden border border-rose-50/50 shadow-sm bg-rose-50 cursor-zoom-in"
                         >
                           {isVideoUrl(url) ? (
                             <video
                               src={url}
                               className="w-full h-full object-cover"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setZoomedMedia(url);
-                              }}
                             />
                           ) : (
                             <img
                               src={url}
                               alt="Memory"
                               className="w-full h-full object-cover"
-                              onClick={() => setZoomedMedia(url)}
                               loading="lazy"
                             />
                           )}
@@ -1114,37 +1144,7 @@ export const Tasks: React.FC = () => {
         </div>
       </div>
 
-      {/* Large Image/Video Zoomed Modal overlay */}
-      {zoomedMedia && (
-        <div
-          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 cursor-zoom-out"
-          onClick={() => setZoomedMedia(null)}
-        >
-          <div className="max-w-4xl max-h-[90vh] flex items-center justify-center relative">
-            <button
-              onClick={() => setZoomedMedia(null)}
-              className="absolute top-[-40px] right-0 text-white hover:text-rose-400 p-2 font-bold text-sm bg-white/10 rounded-full"
-            >
-              关闭
-            </button>
-            {isVideoUrl(zoomedMedia) ? (
-              <video
-                src={zoomedMedia}
-                controls
-                autoPlay
-                className="rounded-lg max-w-full max-h-[80vh] shadow-2xl"
-                onClick={(e) => e.stopPropagation()}
-              />
-            ) : (
-              <img
-                src={zoomedMedia}
-                alt="Zoomed Memory"
-                className="rounded-lg max-w-full max-h-[80vh] object-contain shadow-2xl"
-              />
-            )}
-          </div>
-        </div>
-      )}
+
 
       {/* Shuttle Polaroid Popup Modal */}
       {shuttleMemory && (
@@ -1220,6 +1220,86 @@ export const Tasks: React.FC = () => {
           </div>
         </div>
       )}
+      {/* Zoomed Media Fullscreen Lightbox Modal */}
+      {zoomedMediaIndex !== null && zoomedMediaList.length > 0 && (() => {
+        const currentUrl = zoomedMediaList[zoomedMediaIndex];
+        
+        return (
+          <div 
+            className="fixed inset-0 bg-black/90 z-[300] flex items-center justify-center p-4 backdrop-blur-md animate-fade-in select-none"
+            onClick={() => {
+              setZoomedMediaIndex(null);
+              setZoomedMediaList([]);
+            }}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => {
+                setZoomedMediaIndex(null);
+                setZoomedMediaList([]);
+              }}
+              className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white rounded-full p-2.5 shadow-lg border border-white/25 transition active:scale-95 cursor-pointer z-[310]"
+            >
+              <X size={16} />
+            </button>
+            
+            {/* Left navigation arrow */}
+            {zoomedMediaList.length > 1 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePrevZoomedMedia();
+                }}
+                className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white rounded-full p-2.5 z-[310] transition active:scale-90"
+              >
+                <ChevronLeft size={20} />
+              </button>
+            )}
+
+            {/* Right navigation arrow */}
+            {zoomedMediaList.length > 1 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleNextZoomedMedia();
+                }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/10 hover:bg-white/20 text-white rounded-full p-2.5 z-[310] transition active:scale-90"
+              >
+                <ChevronRight size={20} />
+              </button>
+            )}
+
+            {/* Image / Video Wrapper */}
+            <div className="relative max-w-full max-h-full flex flex-col items-center justify-center animate-zoom-in" onClick={(e) => e.stopPropagation()}>
+              {isVideoUrl(currentUrl) ? (
+                <video 
+                  src={currentUrl} 
+                  controls 
+                  autoPlay 
+                  className="max-w-full max-h-[80vh] rounded-2xl shadow-2xl border border-white/10" 
+                />
+              ) : (
+                <img 
+                  src={currentUrl} 
+                  alt="Zoomed Memory" 
+                  className="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl border border-white/10" 
+                />
+              )}
+
+              {/* Index Indicator dot count */}
+              {zoomedMediaList.length > 1 && (
+                <div className="mt-4 text-[10px] text-white/70 bg-white/10 px-3 py-1 rounded-full font-mono font-bold">
+                  {zoomedMediaIndex + 1} / {zoomedMediaList.length}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

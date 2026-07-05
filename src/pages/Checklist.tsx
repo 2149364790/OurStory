@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
-import { ListTodo, CheckCircle2, Circle, Calendar, Edit3, X, Sparkles, Trash2, Heart, Plus, FileText, ChevronLeft, ChevronRight, Settings, Image, Star } from 'lucide-react';
+import { ListTodo, CheckCircle2, Circle, Calendar, Edit3, X, Sparkles, Trash2, Heart, Plus, FileText, ChevronLeft, ChevronRight, Settings, Image, Star, Video } from 'lucide-react';
 import { TimeMachineModal } from '../components/TimeMachineModal';
 import { DateTimePicker } from '../components/DateTimePicker';
 import { 
@@ -16,6 +16,11 @@ const getStoragePathFromUrl = (url: string): string => {
   }
   const parts = url.split('/');
   return parts[parts.length - 1];
+};
+
+const isVideoUrl = (url: string) => {
+  const ext = url.split('.').pop()?.toLowerCase() || '';
+  return ['mp4', 'mov', 'webm', 'ogg', '3gp'].includes(ext);
 };
 
 export const Checklist: React.FC = () => {
@@ -1112,20 +1117,32 @@ export const Checklist: React.FC = () => {
                                         ? 'grid-cols-2 max-w-[200px]' 
                                         : 'grid-cols-3'
                                   }`}>
-                                    {comp.media.map((url, imgIdx) => (
-                                      <div 
-                                        key={imgIdx} 
-                                        onClick={() => {
-                                          setZoomImages(comp.media || []);
-                                          setZoomIndex(imgIdx);
-                                          setLightboxOpen(true);
-                                        }}
-                                        className="relative rounded-xl overflow-hidden border border-rose-100 bg-rose-50/10 aspect-square cursor-zoom-in active:scale-95 hover:scale-[1.02] transition shadow-xs group"
-                                      >
-                                        <img src={url} className="w-full h-full object-cover" alt="scrapbook" loading="lazy" />
-                                        <div className="absolute inset-0 bg-rose-500/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                                      </div>
-                                    ))}
+                                    {comp.media.map((url, imgIdx) => {
+                                      const isVid = isVideoUrl(url);
+                                      return (
+                                        <div 
+                                          key={imgIdx} 
+                                          onClick={() => {
+                                            setZoomImages(comp.media || []);
+                                            setZoomIndex(imgIdx);
+                                            setLightboxOpen(true);
+                                          }}
+                                          className="relative rounded-xl overflow-hidden border border-rose-100 bg-rose-50/10 aspect-square cursor-zoom-in active:scale-95 hover:scale-[1.02] transition shadow-xs group"
+                                        >
+                                          {isVid ? (
+                                            <video src={url} className="w-full h-full object-cover" />
+                                          ) : (
+                                            <img src={url} className="w-full h-full object-cover" alt="scrapbook" loading="lazy" />
+                                          )}
+                                          <div className="absolute inset-0 bg-rose-500/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                                          {isVid && (
+                                            <div className="absolute inset-0 flex items-center justify-center bg-black/15 pointer-events-none">
+                                              <span className="text-white text-[10px] bg-black/55 w-6 h-6 flex items-center justify-center rounded-full">▶</span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
                                   </div>
                                 </div>
                               )}
@@ -1178,43 +1195,75 @@ export const Checklist: React.FC = () => {
 
                 <div>
                   <label className="block text-[9px] font-bold text-rose-700 mb-1 flex items-center justify-between">
-                    <span className="flex items-center"><Image size={8} className="mr-1" />打卡纪念照片</span>
-                    <span className="text-[7px] text-rose-400 font-normal">支持多选原图</span>
+                    <span className="flex items-center"><Image size={8} className="mr-1" />打卡纪念照片 / 视频</span>
+                    <span className="text-[7px] text-rose-400 font-normal">支持多选原画质照片与视频</span>
                   </label>
                   <div className="space-y-2">
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      onChange={(e) => {
-                        if (e.target.files) {
-                          const filesArray = Array.from(e.target.files);
-                          setChecklistMediaFiles((prev) => [...prev, ...filesArray]);
-                        }
-                      }}
-                      id="checklist-media-upload"
-                      className="hidden"
-                    />
-                    <label
-                      htmlFor="checklist-media-upload"
-                      className={`flex items-center justify-center space-x-1 px-3 py-2 border border-dashed border-rose-200 rounded-xl text-rose-700 text-[10px] font-bold select-none transition ${
-                        checklistUploading 
-                          ? 'opacity-50 cursor-not-allowed pointer-events-none' 
-                          : 'hover:border-rose-400 bg-white/70 hover:bg-rose-50/20 cursor-pointer'
-                      }`}
-                    >
-                      <Plus size={10} />
-                      <span>添加合照/相片</span>
-                    </label>
+                    <div className="flex space-x-2">
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={(e) => {
+                          if (e.target.files) {
+                            const filesArray = Array.from(e.target.files);
+                            setChecklistMediaFiles((prev) => [...prev, ...filesArray]);
+                          }
+                        }}
+                        id="checklist-media-upload"
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="checklist-media-upload"
+                        className={`flex-1 flex items-center justify-center space-x-1 px-3 py-2 border border-dashed border-rose-200 rounded-xl text-rose-700 text-[10px] font-bold select-none transition ${
+                          checklistUploading 
+                            ? 'opacity-50 cursor-not-allowed pointer-events-none' 
+                            : 'hover:border-rose-400 bg-white/70 hover:bg-rose-50/20 cursor-pointer'
+                        }`}
+                      >
+                        <Plus size={10} />
+                        <span>添加合照/相片</span>
+                      </label>
+
+                      <input
+                        type="file"
+                        multiple
+                        accept="video/*"
+                        onChange={(e) => {
+                          if (e.target.files) {
+                            const filesArray = Array.from(e.target.files);
+                            setChecklistMediaFiles((prev) => [...prev, ...filesArray]);
+                          }
+                        }}
+                        id="checklist-video-upload"
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="checklist-video-upload"
+                        className={`flex-1 flex items-center justify-center space-x-1 px-3 py-2 border border-dashed border-rose-200 rounded-xl text-rose-700 text-[10px] font-bold select-none transition ${
+                          checklistUploading 
+                            ? 'opacity-50 cursor-not-allowed pointer-events-none' 
+                            : 'hover:border-rose-400 bg-white/70 hover:bg-rose-50/20 cursor-pointer'
+                        }`}
+                      >
+                        <Video size={10} />
+                        <span>添加纪念视频</span>
+                      </label>
+                    </div>
 
                     {/* Previews of selected media files */}
                     {checklistMediaFiles.length > 0 && (
                       <div className="grid grid-cols-4 gap-1.5 pt-1">
                         {checklistMediaFiles.map((file, idx) => {
                           const fileUrl = URL.createObjectURL(file);
+                          const isVideo = file.type.startsWith('video/');
                           return (
                             <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-rose-100 group shadow-xs">
-                              <img src={fileUrl} className="w-full h-full object-cover" alt="preview" />
+                              {isVideo ? (
+                                <video src={fileUrl} className="w-full h-full object-cover" />
+                              ) : (
+                                <img src={fileUrl} className="w-full h-full object-cover" alt="preview" />
+                              )}
                               <button
                                 type="button"
                                 disabled={checklistUploading}
@@ -1768,12 +1817,22 @@ export const Checklist: React.FC = () => {
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
           >
-            <img
-              src={zoomImages[zoomIndex]}
-              className="max-w-full max-h-[75vh] object-contain rounded-lg animate-scale-up select-none cursor-default"
-              alt="zoomed completion"
-              onClick={(e) => e.stopPropagation()}
-            />
+            {isVideoUrl(zoomImages[zoomIndex]) ? (
+              <video
+                src={zoomImages[zoomIndex]}
+                controls
+                autoPlay
+                className="max-w-full max-h-[75vh] object-contain rounded-lg animate-scale-up select-none cursor-default shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+              />
+            ) : (
+              <img
+                src={zoomImages[zoomIndex]}
+                className="max-w-full max-h-[75vh] object-contain rounded-lg animate-scale-up select-none cursor-default"
+                alt="zoomed completion"
+                onClick={(e) => e.stopPropagation()}
+              />
+            )}
           </div>
 
           {/* Pagination Controls */}
